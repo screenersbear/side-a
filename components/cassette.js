@@ -42,7 +42,7 @@ function printDefs(ids, colors) {
   return [dots, spread, noise(ids.grain, 0.95, 9)];
 }
 
-function body(colors, n, printed) {
+function body(colors, n, printed, bandBig) {
   const ids = { clip: `cassette-window-${n}`, dots: `cassette-dots-${n}`, spread: `cassette-spread-${n}`, grain: `cassette-grain-${n}` };
   const svg = svgEl('svg', { class: 'cassette-art', viewBox: '0 0 1004 638', 'aria-hidden': 'true', focusable: 'false' });
   const defs = svgEl('defs', {});
@@ -50,14 +50,16 @@ function body(colors, n, printed) {
   clip.append(svgEl('rect', { x: 200, y: 205, width: 604, height: 190, rx: 30 }));
   defs.append(clip, ...(printed ? printDefs(ids, colors) : []));
   const packFill = printed ? `url(#${ids.dots})` : colors.pack;
+  // The band: a thin stripe low on the label, or (Deck look) a wide one across the middle.
+  const band = bandBig ? { y: 180, height: 260 } : { y: 405, height: 26 };
   const packs = svgEl('g', { 'clip-path': `url(#${ids.clip})` });
   packs.append(svgEl('circle', { cx: 289.5, cy: 300, r: 135, fill: packFill }), svgEl('circle', { cx: 714.5, cy: 300, r: 95, fill: packFill }));
   const shapes = svgEl('g', printed ? { filter: `url(#${ids.spread})` } : {});
   shapes.append(
     svgEl('rect', { width: 1004, height: 638, rx: 32, fill: colors.shell }),
     svgEl('rect', { x: 50, y: 40, width: 904, height: 400, rx: 16, fill: colors.label }),
-    ...(printed ? [svgEl('rect', { x: 56, y: 410, width: 904, height: 26, fill: '#29323A', opacity: 0.35 })] : []),
-    svgEl('rect', { x: 50, y: 405, width: 904, height: 26, fill: colors.band }),
+    ...(printed ? [svgEl('rect', { x: 56, y: band.y + 5, width: 904, height: band.height, fill: '#29323A', opacity: 0.35 })] : []),
+    svgEl('rect', { x: 50, y: band.y, width: 904, height: band.height, fill: colors.band }),
     svgEl('rect', { x: 200, y: 205, width: 604, height: 190, rx: 30, fill: colors.win }),
     packs,
     svgEl('polygon', { points: '170,520 834,520 774,638 230,638', fill: 'none', stroke: colors.win, 'stroke-width': 4 }),
@@ -73,7 +75,7 @@ function body(colors, n, printed) {
   return svg;
 }
 
-// Printed label text: an INDEX line under the title, and the tape type in the band.
+// Printed label text: an INDEX line under the title, and the tape type in the band (thin bands only).
 function labelText() {
   return [
     el('span', { class: 'c-index-line', 'aria-hidden': 'true' }),
@@ -85,8 +87,8 @@ function labelText() {
 const DEFAULTS = { shell: '#B9C1BC', label: '#FAFAF7', band: '#FF8A3D', win: '#29323A', pack: '#7C868C', hub: '#FAFAF7', ink: '#29323A' };
 
 // colors: shell, label, band, win, pack, hub, ink (label text). printed: the printed finish (the deck's cassette).
-// Returns { node, update({ title, side, len, counter, rec, reelOn }) }.
-export function createCassette(colorsIn = {}, { printed = false } = {}) {
+// bandBig: the wide band of the Deck look. Returns { node, update({ title, side, len, counter, rec, reelOn }) }.
+export function createCassette(colorsIn = {}, { printed = false, bandBig = false } = {}) {
   const colors = { ...DEFAULTS, ...colorsIn };
   count += 1;
   const reels = [el('div', { class: 'reel reel-left' }, hub(colors)), el('div', { class: 'reel reel-right' }, hub(colors))];
@@ -98,7 +100,7 @@ export function createCassette(colorsIn = {}, { printed = false } = {}) {
   const node = el(
     'div',
     { class: 'cassette', style: { '--label-ink': colors.ink } },
-    body(colors, count, printed), ...reels, counter, title, rec, ...(printed ? labelText() : []), side, len,
+    body(colors, count, printed, bandBig), ...reels, counter, title, rec, ...(printed && !bandBig ? labelText() : []), side, len,
   );
 
   function update(v = {}) {

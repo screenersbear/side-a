@@ -1,0 +1,97 @@
+/* The Sport look (pages/looks/sport.js): a yellow sport player. Keys and switches across the top, the cassette
+   in a dark housing under a black cap with a green stripe, EQ, readout and a cyan tuning panel on the right.
+   Colours and sizes from SkinSport.dc.html. Shared deck rules: deck-common.css. */
+
+.look-sport {
+  --gap: 20px;
+  --col: 236px;
+  --body: #FFD100;
+  /* The cassette: what's left under the key row (height) and beside the right column (width). */
+  --bay-h: min(calc(100dvh - 98px), calc((100vw - var(--pad-l) - var(--pad-r) - var(--gap) - 24px - var(--col)) / 1.5737), 440px);
+  background: var(--body); color: var(--ink);
+}
+@media (max-width: 740px) {
+  .look-sport { --gap: 14px; --col: 220px; }
+}
+
+/* The rolled edge in tones of the yellow body. */
+.look-sport .edge {
+  box-shadow:
+    inset 0 3px 0 #D9B200, inset 0 8px 0 #FFE766, inset 0 -4px 0 #9C7F00, inset 0 -8px 0 #B89600,
+    inset 0 -12px 0 #D1AA00, inset 0 -15px 0 #E8BF00, inset 3px 0 0 #D9B200, inset 7px 0 0 #FFE766,
+    inset -3px 0 0 #B89600, inset -7px 0 0 #D1AA00, inset -10px 0 0 #E8BF00;
+}
+
+.look-sport .deck-col {
+  position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; gap: 10px;
+  padding: 12px var(--pad-r) 12px var(--pad-l);
+}
+
+/* Top row: keys, then Radio / Tape, then (on Tape) Mic / Radio in. */
+.look-sport .top-row { flex: 0 0 40px; display: flex; align-items: flex-end; gap: 6px; }
+.look-sport .transport { display: flex; gap: 6px; align-items: flex-end; height: 40px; margin-right: 18px; }
+.look-sport .switch + .switch { margin-left: 12px; }
+/* Dark keys with mango symbols on a hard 4 px edge; a key that's down is short and paper-white. */
+.look-sport .k { width: 52px; height: 40px; background: var(--ink); color: var(--mango); box-shadow: 0 4px 0 #12171B; }
+.look-sport .k.on { height: 32px; background: var(--paper); color: var(--ink); box-shadow: none; }
+.look-sport .k:active { height: 36px; box-shadow: 0 1px 0 #12171B; }
+.look-sport .seg { height: 40px; padding: 0 12px; }
+.look-sport .seg.on { background: var(--ink); color: var(--mango); box-shadow: 0 3px 0 #12171B; }
+
+.look-sport .deck-row { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; gap: var(--gap); }
+
+/* The housing: dark, rounded, a light line above and a darker ledge below. */
+.look-sport .housing {
+  flex: 0 0 auto; align-self: flex-start; display: flex; padding: 12px; border-radius: 27px;
+  background: var(--ink); box-shadow: 0 -3px 0 #FFE766, 0 5px 0 #9C7F00;
+}
+.look-sport .bay { border-radius: 15px; }
+/* The black cap over the top of the cassette (88 of 292 on the mockup), SIDE A on it. */
+.look-sport .cap {
+  position: absolute; left: 0; right: 0; top: 0; height: 30.14%; background: var(--ink);
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 7.53cqh;
+}
+.look-sport .cap span {
+  font-size: 11.64cqh; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1;
+  color: var(--paper); white-space: nowrap;
+}
+/* The green stripe, printed slightly off register over a dark sliver. */
+.look-sport .stripe-off, .look-sport .stripe {
+  position: absolute; top: -6.85%; width: 5.65%; height: 116.4%; transform: skewX(-18deg);
+}
+.look-sport .stripe-off { left: 8.26%; top: -5.48%; background: var(--ink); opacity: .5; }
+.look-sport .stripe { left: 7.39%; background: var(--green); }
+/* The window is recessed: a hard inner shadow along the top (10 px) and left (6 px). */
+.look-sport .recess {
+  position: absolute; inset: 0; border-radius: 15px; pointer-events: none;
+  box-shadow: inset 0 3.42cqh 0 rgba(20, 25, 30, .45), inset 2.05cqh 0 0 rgba(20, 25, 30, .2);
+}
+
+/* Right column: EQ, readout, the cyan tuning panel, links. */
+.look-sport .panel {
+  flex: 1 1 var(--col); min-width: var(--col); max-width: 320px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+/* The moving part: three EQ sliders whose knobs ride up and down, out of step. */
+.look-sport .eq-row { display: flex; align-items: center; gap: 16px; }
+.look-sport .eq { display: flex; gap: 16px; height: 40px; }
+.look-sport .eq b { position: relative; display: block; width: 2px; height: 40px; background: var(--ink); }
+.look-sport .eq i { position: absolute; left: -8px; top: 4px; width: 18px; height: 7px; background: var(--ink); transform: translateY(14px); }
+@keyframes sport-eq { 0%, 100% { transform: translateY(26px); } 50% { transform: translateY(0); } }
+.look-sport .eq-row.on .eq i { animation: sport-eq 1.5s ease-in-out infinite; }
+.look-sport .eq-row.on .eq b:nth-child(2) i { animation-duration: 1.15s; animation-delay: -.5s; }
+.look-sport .eq-row.on .eq b:nth-child(3) i { animation-duration: 1.8s; animation-delay: -1s; }
+.look-sport .eq-name { font-size: 11px; font-weight: 500; }
+
+.look-sport .big { font-size: 44px; font-stretch: 125%; font-style: italic; letter-spacing: -0.03em; line-height: .9; }
+
+.look-sport .tune-box {
+  display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px;
+  background: var(--cyan); box-shadow: 0 4px 0 #128FB0;
+}
+.look-sport .tuner { height: 26px; }
+.look-sport .tick-n { font-weight: 800; }
+.look-sport .needle { height: 18px; width: 5px; margin-left: -2.5px; }
+.look-sport .p { width: 48px; height: 44px; box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink); }
+.look-sport .p.on { background: var(--ink); color: var(--cyan); }
+.look-sport .p.on, .look-sport .p:active { transform: translateY(2px); box-shadow: 0 1px 0 #12171B; }

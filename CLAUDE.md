@@ -2,7 +2,8 @@
 
 A cassette Walkman for the phone, as a web app (landscape only). Plays internet radio, records voice notes and tapes
 the radio, keeps recordings on a tape shelf. Built 2026-11-14 from `../SIDE A mockup handoff/` (read its HANDOFF.md and
-DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Pocket** only (Starky's pick).
+DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Looks: Pocket (the default), Deck, Sport and Boombox,
+picked in Settings and remembered on the device (Starky, 2026-11-14).
 
 ## How it's put together
 
@@ -10,19 +11,25 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
   turns a state change into steps for the speakers and recorder; `deck-view.js` is what the screen shows;
   `stations.js` the dial (Next/Previous seek station to station, no manual tuning) and the four presets;
   `shelf.js` filters and labels; `recording.js` formats and error words; `songs.js` and `now-playing.js` the song
-  titles kept on radio tapes.
+  titles kept on radio tapes; `looks.js` the four looks and their colours; `routes.js` which screen (#/shelf, #/settings).
 - `data/stations.js`: every station on the dial, one real US station per FM frequency (73, from Radio Browser,
   checked 2026-11-14). `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
   on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
 - `data/`: `tapes.js` (IndexedDB; the sound is stored as bytes, not a Blob, so Safari private mode works) and
-  `settings.js` (last station and record source).
+  `settings.js` (last station and record source; the look, under its own key).
 - `audio/`: `radio.js` (audio element on the stream; tapeable stations are asked to share their sound, crossOrigin,
   and fall back to playing plain if they refuse), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
   with call clean-up off, or the radio as it plays, element -> Web Audio -> MediaStreamDestination, from the moment REC
   is pressed; Starky 2026-11-14: never a second connection), `now-playing.js` (while taping, reads the station's
   song title every 20 s: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
   Icecast server's status-json.xsl, "kexp" = KEXP's feed; 14 of 73 stations have one), `engine.js` runs the steps.
-- `pages/` deck and shelf; `components/` cassette (true 1004 x 638 geometry), keys, tuner, level bars; `styles/`.
+- `pages/`: `deck.js` builds the deck in the picked look: the parts are the same in every look
+  (`components/deck-parts.js`), each look in `pages/looks/` only arranges them and adds its moving part (Pocket level
+  bars, Deck meters, Sport EQ, Boombox speaker; all CSS, off with reduce motion). `shelf.js`, `settings.js`.
+  Changing the look rebuilds the deck screen; the deck's state and the sound carry on.
+- `components/`: cassette (true 1004 x 638 geometry; `bandBig` for the Deck look), keys, tuner, the moving parts.
+- `styles/`: `deck-common.css` (what every look shares), one `look-*.css` per look (colours and sizes from the
+  mockup's `Skin*.dc.html` at 844 x 390, scaling with the phone), `shelf.css`, `settings.css`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
 - `npm run check-stations` checks every station is streaming and whether it allows taping (needs the station to send

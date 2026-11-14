@@ -1,4 +1,5 @@
-// SIDE A flows in a real browser: radio, recording a voice note, taping the radio, the shelf, the portrait prompt.
+// SIDE A flows in a real browser: radio, recording a voice note, taping the radio, the shelf, the looks in
+// Settings, the portrait prompt.
 // The stations are a stand-in tone, the mic is a test signal and every test is muted, so no internet is needed.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
@@ -199,6 +200,70 @@ test('says so when the mic is not allowed', async ({ page }) => {
   await expect(status(page)).toHaveText('Mic is off. Allow it for SIDE A in Settings.');
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
 });
+
+const card = (page, look) => page.getByRole('button', { name: new RegExp(`^${look}`, 'i') });
+const movingPart = (page) => page.locator('.deck .on.levels, .deck .bay.on, .deck .on.meters, .deck .on.eq-row, .deck .on.speaker');
+
+async function pickLook(page, look) {
+  await page.getByRole('link', { name: 'Settings ›' }).click();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await card(page, look).click();
+  await expect(card(page, look)).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('link', { name: 'Deck', exact: true }).click();
+  await expect(page.locator(`.look-${look.toLowerCase()}`)).toBeVisible();
+}
+
+test('Settings changes the look, and the deck keeps it after a reload', async ({ page }) => {
+  await openDeck(page);
+  await expect(page.locator('.look-pocket')).toBeVisible();
+  await page.getByRole('link', { name: 'Settings ›' }).click();
+  await expect(card(page, 'Pocket')).toHaveAttribute('aria-pressed', 'true');
+  await expect(card(page, 'Pocket')).toContainText('In use');
+  await card(page, 'Sport').click();
+  await expect(card(page, 'Sport')).toHaveAttribute('aria-pressed', 'true');
+  await expect(card(page, 'Sport')).toContainText('In use');
+  await expect(card(page, 'Pocket')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('link', { name: 'Deck', exact: true }).click();
+  await expect(page.locator('.look-sport')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('.look-sport')).toBeVisible();
+  await expect(page.locator('.look-pocket')).toHaveCount(0);
+});
+
+test('changing the look keeps the radio playing', async ({ page }) => {
+  await openDeck(page);
+  await page.getByRole('button', { name: /^Preset 2:/ }).click();
+  await expect(status(page)).toHaveText('FM, preset 2');
+  await pickLook(page, 'Boombox');
+  await expect(status(page)).toHaveText('FM, preset 2');
+  await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
+});
+
+for (const look of ['Deck', 'Sport', 'Boombox']) {
+  test(`the ${look} look has every control on screen, and its moving part runs only while sound plays`, async ({ page }) => {
+    await openDeck(page);
+    await pickLook(page, look);
+    const size = page.viewportSize();
+    for (const name of ['Record', 'Play', 'Previous station', 'Next station', 'Stop', 'RADIO', 'TAPE']) {
+      const box = await key(page, name).boundingBox();
+      expect(box, `${name} is shown`).not.toBeNull();
+      const inside = box.x >= 0 && box.y >= 0 && box.x + box.width <= size.width + 0.5 && box.y + box.height <= size.height + 0.5;
+      expect(inside, `${name} is on screen`).toBe(true);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+    await page.getByRole('button', { name: /^Preset 2:/ }).click();
+    await expect(status(page)).toHaveText('FM, preset 2');
+    await expect(line(page)).toHaveText('The Current, Minneapolis MN');
+    await expect(movingPart(page)).toHaveCount(1);
+    await key(page, 'Stop').click();
+    await expect(movingPart(page)).toHaveCount(0);
+    await key(page, 'TAPE').click();
+    await expect(key(page, 'MIC')).toBeVisible();
+    await expect(key(page, 'RADIO IN')).toBeVisible();
+    await expect(page.getByRole('link', { name: /shelf ›/i })).toBeVisible();
+  });
+}
 
 test.describe('upright phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });

@@ -1,0 +1,34 @@
+/* Settings (pages/settings.js): ink ground like the shelf, one card per look, the one in use ringed in mango.
+   From SettingsPanel.dc.html. */
+
+.settings {
+  --pad-l: max(44px, env(safe-area-inset-left, 0px));
+  --pad-r: max(44px, env(safe-area-inset-right, 0px));
+  background: var(--ink); color: var(--paper);
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 14px var(--pad-r) 20px var(--pad-l); overflow-y: auto;
+}
+@media (max-width: 740px) {
+  .settings { --pad-l: max(20px, env(safe-area-inset-left, 0px)); --pad-r: max(20px, env(safe-area-inset-right, 0px)); }
+}
+
+.settings a, .settings button { color: var(--paper); }
+.settings a:focus-visible, .settings button:focus-visible { outline: 3px solid var(--mango); outline-offset: 3px; }
+
+.settings-top { display: flex; align-items: center; gap: 16px; }
+.settings-body { display: flex; flex-direction: column; gap: 4px; }
+.settings-label { margin: 0; }
+.settings-note { margin: 0 0 10px; font-size: 12px; font-weight: 500; }
+
+.looks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.look-card {
+  border: 0; border-radius: 0; padding: 0; margin: 0; background: transparent; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.swatch { height: min(120px, 30dvh); display: flex; align-items: center; justify-content: center; }
+.look-card.on .swatch { box-shadow: inset 0 0 0 4px var(--mango); }
+.swatch-tape { display: block; width: min(101px, 70%); }
+.look-name-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.look-name { font-size: 13px; }
+.in-use { font-size: 11px; font-weight: 500; color: var(--mango); }
+.look-about { font-size: 11px; font-weight: 500; line-height: 1.3; }

@@ -1,0 +1,88 @@
+/* The Deck look (pages/looks/deck.js): a grey home deck. Mode switches stacked on the left over L/R meters,
+   the cassette in a recessed bay with five piano keys under it, readout, tuner and presets on the right.
+   Colours and sizes from SkinDeck.dc.html. Shared deck rules: deck-common.css. */
+
+.look-deck {
+  --gap: 20px;
+  --body: #E3E8E4;
+  /* The cassette: what's left after the keys under it (height) and the two side columns (width). */
+  --bay-h: min(calc(100dvh - 134px), calc((100vw - var(--pad-l) - var(--pad-r) - 84px - 2 * var(--gap) - 16px - 196px) / 1.5737), 420px);
+  background: var(--body); color: var(--ink);
+}
+@media (max-width: 740px) {
+  .look-deck { --gap: 14px; }
+}
+
+/* The rolled edge in tones of the grey body. */
+.look-deck .edge {
+  box-shadow:
+    inset 0 3px 0 #B9C1BC, inset 0 8px 0 #FFFFFF, inset 0 -4px 0 #7C868C, inset 0 -8px 0 #9AA3A8,
+    inset 0 -12px 0 #B9C1BC, inset 0 -15px 0 #CDD3CF, inset 3px 0 0 #B9C1BC, inset 7px 0 0 #FFFFFF,
+    inset -3px 0 0 #9AA3A8, inset -7px 0 0 #B9C1BC, inset -10px 0 0 #CDD3CF;
+}
+
+.look-deck .deck-row {
+  position: relative; z-index: 1; display: flex; justify-content: center; gap: var(--gap);
+  height: 100%; padding: 16px var(--pad-r) 14px var(--pad-l);
+}
+/* Small printed labels: wide, spaced capitals. */
+.look-deck .lab { font-size: 10px; font-weight: 500; font-stretch: 125%; letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; }
+
+/* Left column: Mode, Rec from (on Tape), the meters at the bottom. */
+.look-deck .side { flex: 0 0 84px; width: 84px; display: flex; flex-direction: column; gap: 8px; }
+.look-deck .side .switch { flex-direction: column; gap: 4px; }
+.look-deck .rec-from { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.look-deck .seg {
+  width: 84px; padding: 0; text-align: center; text-decoration: none;
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+}
+.look-deck .seg.on { background: var(--ink); color: var(--body); }
+.look-deck .seg.on, .look-deck .seg:active { transform: translateY(2px); box-shadow: inset 0 0 0 2px var(--ink), 0 1px 0 var(--ink); }
+
+/* The moving part: L and R meters, ten cells each, the last two red. A cover in the body colour slides off them. */
+.look-deck .meters { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+.look-deck .meter { display: flex; align-items: center; gap: 6px; }
+.look-deck .lvl { position: relative; flex: 1 1 auto; height: 8px; display: flex; gap: 2px; }
+.look-deck .lvl i { flex: 1 1 0; background: var(--ink); }
+.look-deck .lvl i:nth-child(n+9) { background: var(--red); }
+.look-deck .lvl-cover { position: absolute; right: 0; top: 0; bottom: 0; width: 75%; background: var(--body); transform-origin: right; }
+@keyframes deck-lvl { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.16); } }
+.look-deck .meters.on .lvl-cover { animation: deck-lvl 1.3s ease-in-out infinite; }
+.look-deck .meters.on .meter-r .lvl-cover { animation-duration: 1.05s; animation-delay: -.45s; }
+
+/* Middle: the recessed bay (hard inner shadow top and left, a light line above, a ledge below), piano keys. */
+.look-deck .middle { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.look-deck .frame {
+  display: flex; padding: 8px;
+  box-shadow: inset 0 0 0 2px var(--ink), inset 0 10px 0 rgba(41, 50, 58, .28), inset 6px 0 0 rgba(41, 50, 58, .14),
+    0 -3px 0 #FFFFFF, 0 4px 0 #B9C1BC;
+}
+.look-deck .key-names { display: flex; gap: 3px; }
+.look-deck .key-names .lab { flex: 1 1 0; text-align: center; }
+.look-deck .transport { display: flex; gap: 3px; align-items: flex-end; height: 48px; }
+/* Piano keys stand on a hard 5 px edge; a key that's down is shorter and dark. */
+.look-deck .pk {
+  flex: 1 1 0; height: 48px; background: var(--paper); color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 5px 0 var(--ink);
+}
+.look-deck .pk.on { background: var(--ink); color: var(--paper); }
+.look-deck .pk.on, .look-deck .pk:active { height: 40px; box-shadow: inset 0 0 0 2px var(--ink), 0 1px 0 var(--ink); }
+
+/* Right: readout, tuner, presets, links. */
+.look-deck .panel {
+  flex: 1 1 auto; min-width: 0; max-width: 300px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.look-deck .readout { gap: 6px; }
+.look-deck .status { font-size: 10px; font-stretch: 125%; letter-spacing: .18em; text-transform: uppercase; }
+.look-deck .big { font-size: 56px; font-stretch: 62%; line-height: .85; }
+.look-deck .unit { font-size: 11px; }
+.look-deck .line { font-size: 13px; }
+.look-deck .tuner { height: 28px; }
+.look-deck .tick { width: 1px; margin-left: 0; }
+.look-deck .tick-n { font-size: 10px; }
+.look-deck .needle { height: 18px; }
+.look-deck .p { width: 46px; height: 44px; border-top: 3px solid var(--ink); box-shadow: 0 3px 0 #B9C1BC; }
+.look-deck .p.on { background: var(--ink); color: var(--body); }
+.look-deck .p.on, .look-deck .p:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.look-deck .links { flex-direction: column; align-items: flex-end; }

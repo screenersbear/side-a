@@ -14,8 +14,12 @@ describe('screenFor', () => {
     expect(screenFor('#/')).toBe('deck');
     expect(screenFor(undefined)).toBe('deck');
   });
+  it('opens Settings for #/settings', () => {
+    expect(screenFor('#/settings')).toBe('settings');
+    expect(screenFor('#settings')).toBe('settings');
+  });
   it('opens the deck for anything unknown', () => {
-    expect(screenFor('#/settings')).toBe('deck');
+    expect(screenFor('#/setting')).toBe('deck');
     expect(screenFor('#/shelves')).toBe('deck');
     expect(screenFor('#/x/shelf')).toBe('deck');
   });
@@ -24,6 +28,7 @@ describe('screenFor', () => {
 describe('hashFor', () => {
   it('gives each screen its address', () => {
     expect(hashFor('shelf')).toBe('#/shelf');
+    expect(hashFor('settings')).toBe('#/settings');
     expect(hashFor('deck')).toBe('#/');
   });
   it('sends anything else to the deck', () => {
@@ -32,6 +37,7 @@ describe('hashFor', () => {
   });
   it('round-trips with screenFor', () => {
     expect(screenFor(hashFor('shelf'))).toBe('shelf');
+    expect(screenFor(hashFor('settings'))).toBe('settings');
     expect(screenFor(hashFor('deck'))).toBe('deck');
   });
 });

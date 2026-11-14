@@ -1,0 +1,71 @@
+/* What every look of the deck shares (pages/looks/): side padding, paper grain, the rolled edge's shape, key
+   basics, the readout's type, the tuner and the switches. Each look's file (look-*.css) sets its colours, sizes
+   and layout; sizes match the mockups on an iPhone 14 held sideways (844 x 390) and scale to other phones. */
+
+.deck {
+  --side: 44px;
+  --pad-l: max(var(--side), env(safe-area-inset-left, 0px));
+  --pad-r: max(var(--side), env(safe-area-inset-right, 0px));
+}
+@media (max-width: 740px) {
+  .deck { --side: 20px; }
+}
+
+/* Printed finish (HANDOFF.md): paper grain over the body, under text and controls. */
+.deck .grain {
+  position: absolute; inset: 0; pointer-events: none; opacity: .16; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+/* The rolled screen edge: flat tone bands inside every edge (each look sets its own tones). */
+.deck .edge { position: absolute; inset: 0; z-index: 2; border-radius: 36px; pointer-events: none; }
+
+.deck .k, .deck .pk, .deck .seg, .deck .p, .deck .tl { border: 0; border-radius: 0; padding: 0; margin: 0; cursor: pointer; }
+.deck .k:focus-visible, .deck .pk:focus-visible, .deck .seg:focus-visible, .deck .p:focus-visible, .deck .tl:focus-visible {
+  outline: 3px solid var(--cobalt); outline-offset: 3px;
+}
+.deck .k, .deck .pk {
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .08s, box-shadow .08s, height .08s;
+}
+.deck .icon { display: flex; }
+.deck .tl {
+  background: transparent; color: inherit; font-size: 12px; font-weight: 500; min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; text-decoration: none; white-space: nowrap;
+}
+
+.deck .readout { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.deck .status, .deck .line { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Messages like "Recording isn't allowed on this station." wrap rather than lose their end. */
+.deck .status { white-space: normal; }
+.deck .big-row { display: flex; align-items: baseline; gap: 6px; }
+.deck .big { font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.deck .unit { font-size: 12px; font-weight: 500; }
+
+.deck .switch { display: flex; gap: 2px; }
+.deck .seg {
+  height: 44px; padding: 0 10px; background: transparent; color: inherit;
+  text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px;
+  transition: transform .08s, box-shadow .08s;
+}
+.deck .seg.on { text-decoration: none; }
+
+.deck .tuner { position: relative; height: 30px; width: 100%; }
+.deck .dial-line { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: currentColor; }
+.deck .tick { position: absolute; top: 0; width: 2px; height: 8px; margin-left: -1px; background: currentColor; }
+.deck .tick-n { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 11px; font-weight: 700; font-stretch: 62%; }
+.deck .needle { position: absolute; top: -4px; height: 20px; width: 4px; margin-left: -2px; background: var(--red); }
+
+.deck .presets { display: flex; justify-content: space-between; }
+.deck .p {
+  background: transparent; color: inherit; font-size: 22px; font-weight: 900; font-stretch: 62%;
+  transition: transform .08s, box-shadow .08s;
+}
+
+.deck .links { display: flex; justify-content: space-between; }
+
+/* The cassette bay: sized by its look (--bay-h), always the cassette's true 1.57:1. */
+.deck .bay {
+  position: relative; flex: 0 0 auto; overflow: hidden;
+  height: var(--bay-h); width: calc(var(--bay-h) * 1.5737);
+  container-type: size;
+}

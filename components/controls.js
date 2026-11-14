@@ -2,10 +2,13 @@
 import { el, setPressed } from './el.js';
 import { icon } from './icons.js';
 
+const KEY_ORDER = ['rec', 'play', 'rew', 'ff', 'stop'];
+
 // Record, Play, Rewind, Fast forward, Stop. onPress(type) gets 'rec', 'play', 'rew', 'ff' or 'stop'.
-export function createTransport(onPress) {
+// Looks can change the order, the key class and the Record symbol (the Deck look's piano keys).
+export function createTransport(onPress, { order = KEY_ORDER, cls = 'k', recIcon = 'rec' } = {}) {
   const key = (type, label, pressable) =>
-    el('button', { class: 'k', type: 'button', 'aria-label': label, 'aria-pressed': pressable ? 'false' : null, onclick: () => onPress(type) }, icon(type));
+    el('button', { class: cls, type: 'button', 'aria-label': label, 'aria-pressed': pressable ? 'false' : null, onclick: () => onPress(type) }, icon(type === 'rec' ? recIcon : type));
   const keys = {
     rec: key('rec', 'Record', true),
     play: key('play', 'Play', true),
@@ -13,7 +16,7 @@ export function createTransport(onPress) {
     ff: key('ff', 'Fast forward', false),
     stop: key('stop', 'Stop', true),
   };
-  const node = el('div', { class: 'transport' }, Object.values(keys));
+  const node = el('div', { class: 'transport' }, order.map((type) => keys[type]));
 
   function update(v) {
     setPressed(keys.rec, v.recording);

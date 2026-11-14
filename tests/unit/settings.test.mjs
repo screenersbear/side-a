@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadSettings, saveSettings } from '../../data/settings.js';
+import { loadSettings, saveSettings, loadLook, saveLook } from '../../data/settings.js';
 
 function memory() {
   const data = {};
@@ -51,10 +51,37 @@ describe('loadSettings', () => {
   });
 });
 
+describe('the look', () => {
+  it('reads back the look picked', () => {
+    const store = memory();
+    expect(saveLook('sport', store)).toBe(true);
+    expect(store.data['side-a.look']).toBe('sport');
+    expect(loadLook(store)).toBe('sport');
+  });
+  it('is kept apart from the station, so saving one never loses the other', () => {
+    const store = memory();
+    saveLook('deck', store);
+    saveSettings({ freq: 90.3, source: 'mic' }, store);
+    expect(loadLook(store)).toBe('deck');
+    expect(loadSettings(store)).toEqual({ freq: 90.3, source: 'mic' });
+  });
+  it('is none the first time, without storage, or when storage is blocked', () => {
+    expect(loadLook(memory())).toBe('');
+    expect(loadLook(null)).toBe('');
+    expect(loadLook({ getItem: () => { throw new Error('blocked'); } })).toBe('');
+  });
+  it('says so when it cannot be saved', () => {
+    expect(saveLook('deck', { setItem: () => { throw new Error('quota'); } })).toBe(false);
+    expect(saveLook('deck', null)).toBe(false);
+  });
+});
+
 describe('the browser storage default', () => {
   beforeEach(() => localStorage.clear());
   it('uses localStorage when none is given', () => {
     expect(saveSettings({ freq: 89.3, source: 'mic' })).toBe(true);
     expect(loadSettings()).toEqual({ freq: 89.3, source: 'mic' });
+    expect(saveLook('boombox')).toBe(true);
+    expect(loadLook()).toBe('boombox');
   });
 });

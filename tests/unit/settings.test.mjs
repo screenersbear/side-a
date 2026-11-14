@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadClicks, saveClicks } from '../../data/settings.js';
+import {
+  loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadLocalPresets, saveLocalPresets, loadClicks, saveClicks,
+} from '../../data/settings.js';
 
 function memory() {
   const data = {};
@@ -107,6 +109,24 @@ describe('the presets', () => {
   });
 });
 
+describe('the bands', () => {
+  it('keep the band and each band\u2019s last station', () => {
+    const store = memory();
+    saveSettings({ band: 'local', freq: 90.3, localFreq: 101.5, source: 'mic', presets: [1], playing: true }, store);
+    expect(loadSettings(store)).toEqual({ band: 'local', freq: 90.3, localFreq: 101.5, source: 'mic' });
+  });
+  it('keep FM2\u2019s presets apart from FM1\u2019s', () => {
+    const store = memory();
+    savePresets([88.3, 89.3, 90.3, 98.9], store);
+    expect(saveLocalPresets([90.7, 93.9, 97.1, 101.5], store)).toBe(true);
+    expect(store.data['side-a.local-presets']).toBe('[90.7,93.9,97.1,101.5]');
+    expect(loadLocalPresets(store)).toEqual([90.7, 93.9, 97.1, 101.5]);
+    expect(loadPresets(store)).toEqual([88.3, 89.3, 90.3, 98.9]);
+    expect(loadLocalPresets(memory())).toBeNull();
+    expect(saveLocalPresets([1], null)).toBe(false);
+  });
+});
+
 describe('key clicks', () => {
   it('are on until turned off, and remember it', () => {
     const store = memory();
@@ -131,6 +151,8 @@ describe('the browser storage default', () => {
   it('uses localStorage when none is given', () => {
     expect(saveSettings({ freq: 89.3, source: 'mic' })).toBe(true);
     expect(loadSettings()).toEqual({ freq: 89.3, source: 'mic' });
+    expect(saveLocalPresets([90.7])).toBe(true);
+    expect(loadLocalPresets()).toEqual([90.7]);
     expect(saveLook('boombox')).toBe(true);
     expect(loadLook()).toBe('boombox');
     expect(savePresets([91.1, 89.3, 90.3, 98.9])).toBe(true);

@@ -38,6 +38,10 @@
   transition: transform .08s, box-shadow .08s;
 }
 .deck .tk::after { content: ''; position: absolute; inset: 0 0 -4px; }
+/* The BAND key (HANDOFF "Bands"): big FM1 or FM2 over a small WORLD or LOCAL, raised like Shelf and Settings. */
+.deck .bk { flex-direction: column; justify-content: center; gap: 3px; height: 44px; min-width: 46px; padding: 0 7px; }
+.deck .bk1 { font-size: 17px; font-weight: 900; font-stretch: 62%; letter-spacing: 0; line-height: 1; }
+.deck .bk2 { font-size: 8px; font-weight: 800; font-stretch: 115%; letter-spacing: .08em; line-height: 1; }
 .deck .tk:active { transform: translateY(3px); }
 /* Light bodies: a paper key, ink outline, a white line across the top. Dark bodies: an ink key, lit along the top. */
 .look-pocket .tk, .look-deck .tk {

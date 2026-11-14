@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { soundPlan } from '../../logic/sound-plan.js';
 import { startState, deckReducer } from '../../logic/deck.js';
 import { STATIONS, stationAt } from '../../logic/stations.js';
+import { LOCAL } from './local-fixtures.mjs';
 
 const WBGO = stationAt(88.3);
 const KEXP = stationAt(90.3);
@@ -27,7 +28,7 @@ describe('soundPlan: radio', () => {
   });
   it('a new station replaces the old one', () => {
     expect(plan(radio(WBGO), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO + 1].url, tapeable: true, station: WBGO + 1 }]);
-    expect(plan(radio(WBGO), { type: 'preset', key: 2 })).toEqual([{ do: 'radio.play', url: STATIONS[KEXP].url, tapeable: true, station: KEXP }]);
+    expect(plan(radio(WBGO), { type: 'preset', key: 2 })).toEqual([{ do: 'radio.play', url: STATIONS[KEXP].url, tapeable: true, station: KEXP, titles: 'kexp' }]);
   });
   it('Stop stops the radio', () => {
     expect(plan(radio(), 'stop')).toEqual([{ do: 'radio.stop' }]);
@@ -140,5 +141,20 @@ describe('soundPlan', () => {
   it('does not seek when the position stayed put', () => {
     const a = tapeIn({ pos: 1 });
     expect(soundPlan(a, { ...a, notice: 'x' }, 'ff')).toEqual([]);
+  });
+});
+
+describe('soundPlan: bands', () => {
+  const both = () => startState({}, LOCAL);
+  it('the BAND key plays the other band’s station', () => {
+    expect(plan(both(), 'band')).toEqual([{ do: 'radio.play', url: LOCAL[0].url, tapeable: true, station: 0 }]);
+  });
+  it('the same number on the other band is another station', () => {
+    const s = { ...deckReducer(both(), { type: 'band' }), tuning: false };
+    const back = deckReducer(s, { type: 'band' });
+    expect(soundPlan(s, { ...back, station: 0 }, 'band')).toEqual([{ do: 'radio.play', url: STATIONS[0].url, tapeable: true, station: 0 }]);
+  });
+  it('new local stations play at once', () => {
+    expect(plan({ ...startState(), playing: true }, { type: 'locals', list: LOCAL })).toEqual([{ do: 'radio.play', url: LOCAL[0].url, tapeable: true, station: 0 }]);
   });
 });

@@ -1,7 +1,8 @@
-// Checks every station in data/stations.js: is it streaming, and does it still allow taping in a browser?
+// Checks every FM1 station (data/stations.js and data/world-stations.js): is it streaming, and does it still allow taping in a browser?
 // Stations come and go; run this now and then: npm run check-stations
 // Node trusts fewer certificates than browsers, so a "certificate" problem may still play fine in Safari and Chrome.
 import { STATION_LIST } from '../data/stations.js';
+import { WORLD_LIST } from '../data/world-stations.js';
 
 async function check(station) {
   const control = new AbortController();
@@ -28,7 +29,7 @@ async function check(station) {
   }
 }
 
-const results = await Promise.all(STATION_LIST.map(check));
+const results = await Promise.all([...STATION_LIST, ...WORLD_LIST].map(check));
 const dead = results.filter((r) => !r.live);
 const wrongFlag = results.filter((r) => r.live && r.tapes !== (r.station.tape !== false));
 for (const r of dead) console.log(`not streaming: ${r.station.freq} ${r.station.name}, ${r.why}  ${r.station.url}`);

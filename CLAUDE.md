@@ -9,17 +9,28 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
 
 - `logic/`: pure rules, 100% unit tested. `deck.js` is the deck's state and what every button does; `sound-plan.js`
   turns a state change into steps for the speakers and recorder; `deck-view.js` is what the screen shows;
-  `stations.js` the dial (Next/Previous seek station to station, no manual tuning) and the four presets
-  (defaults WBGO, The Current, KEXP, KUTX; `cleanPresets` checks saved ones against the dial);
+  `stations.js` FM1's dial (Next/Previous seek station to station) and the four presets
+  (defaults WBGO, The Current, KEXP, KUTX; `cleanPresets` checks saved ones against a band's list); `dial.js` the
+  tuning wheel (0.1 MHz steps; locks onto the nearest station within 0.2 MHz with a soft tick; between stations
+  `between` holds the frequency, the radio is quiet: "FM, searching" / "Static. Keep turning.", Record says "Tune to
+  a station first."); `bands.js` FM1 WORLD / FM2 LOCAL (state: `band`, `local` = FM2's stations, `other` = the other
+  band's last station and presets, `intro` = FM2's hello line; `listOf(s)` / `stationOf(s)` replace STATIONS[...]);
+  `local-stations.js` FM2 from Radio Browser; `ticker.js` the long-title ticker's timing; `key-clicks.js`;
   `shelf.js` filters and labels; `recording.js` formats and error words; `songs.js` and `now-playing.js` the song
   titles shown while a station plays and kept on radio tapes; `looks.js` the four looks and their colours; `routes.js` which screen (#/shelf, #/settings);
   `lock-screen.js` what the phone's lock screen shows; `export.js` and `mp3.js` sharing a tape as a file.
-- `data/stations.js`: every station on the dial, one real US station per FM frequency (73, from Radio Browser,
-  checked 2026-11-14). `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
+- `data/stations.js`: FM1's US stations, one real US station per FM frequency (73, from Radio Browser,
+  checked 2026-11-14). `data/world-stations.js`: FM1's 14 world stations (FIP, Radio Nova, triple j, FM4, radioeins,
+  Capital, Radio X, DR P3, George FM...), each at its home frequency and city, or 0.1 MHz up where a US station has
+  it (`home` = the real one; the US ones keep theirs because saved presets point at them). All allow taping. `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
   on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
 - `data/`: `tapes.js` (IndexedDB; the sound is stored as bytes, not a Blob, so Safari private mode works; rename sets
   `named: true`, so a radio tape's label shows the new name instead of its first song), `settings.js` (last station and
-  record source; the look and the presets, each under its own key) and `share.js` (the share sheet, or a download).
+  record source, plus `band` and FM2's `localFreq`; the look, FM1's presets, FM2's presets and key clicks, each under
+  its own key), `local-stations.js` (FM2's stations kept on the phone with only the place's name, `side-a.local`),
+  `find-local.js` (the phone's location rounded to 0.1 degree, or a US ZIP code via api.zippopotam.us, then Radio
+  Browser's stations within 100 km, 200 if fewer than four, that name an FM frequency and stream https MP3/AAC) and
+  `share.js` (the share sheet, or a download).
 - `audio/`: `radio.js` (one audio element for every station, never Web Audio. Tapeable stations are fed through the
   app's own connection, `radio-feed.js`: fetch -> frames (`logic/stream-frames.js`: MP3 and AAC ADTS) ->
   ManagedMediaSource (iPhones, iOS 17.1+, needs `disableRemotePlayback`) or MediaSource, in 'sequence' mode, so each
@@ -41,7 +52,8 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   song title every 20 s; one reading feeds both the deck's second line and a radio tape's songs: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
   Icecast server's status-json.xsl, "kexp" = KEXP's feed; 14 of 73 stations have one), `engine.js` runs the steps.
   `lock-screen.js` (Media Session: station or tape, song, the cassette icon; skip = station on the radio, 10 s on a
-  tape), `stay-awake.js` (screen wake lock while recording or making a file), `export.js` (a tape as MP3 or WAV).
+  tape), `key-clicks.js` (its own AudioContext, the mockup's clack: latch for Play/Rec, clunk for Stop/Rew/FF, tick
+  for the rest; suspended after 3 s; Settings turns it off), `stay-awake.js` (screen wake lock while recording or making a file), `export.js` (a tape as MP3 or WAV).
 - Lock screen and background (HANDOFF 2026-11-14): when the app is hidden mid-recording (phone locked, another app),
   the recording stops and is saved: "Recording stopped when you left the app. The tape is saved." Making a file pauses
   while hidden and carries on when back. The radio and tapes play on when the phone locks or another app comes up,
@@ -66,6 +78,17 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   (Boombox: under the speaker, with a note). Record pressed again while recording stops it, the same as Stop.
   Stopping a radio recording saves the tape and the radio plays on, back in radio mode (Starky, 2026-11-14:
   like a boombox); Stop again turns it off. Mic recordings stop everything, as before.
+  Long song titles scroll like a ticker when they overflow (`components/ticker.js`: hold 2 s, 25 px/s, still with
+  reduce motion; screen readers get the title once). Depth pass: Shelf and Settings are raised keys with icons, keys
+  have three flat tones, the Sport EQ is a printed panel. The tuning wheel (`components/tune-wheel.js`, a slider:
+  drag, arrows 0.1, Page Up/Down 1, Home/End): Pocket upright beside the bay, Deck and Sport flat under the tuner,
+  Boombox a knob at the end of the bar.
+  Bands (HANDOFF "Bands"): the BAND key (big FM1/FM2, small WORLD/LOCAL, the mockup's aria labels) is first in
+  Pocket's preset row, under Mode in Deck (radio only), beside the big frequency in Sport, in Boombox's Radio/Tape
+  row (radio only). The first FM2 press opens `components/local-finder.js` (location or ZIP; Not now stays on FM1);
+  FM2 then plays its first preset, the status reads "Local · <station>, <town>" and the line says "Local stations
+  near you, at their real frequencies." until the user tunes. Each band keeps its last station and four presets
+  (FM2's default: its four most-listened stations, repeated if fewer). Settings: "Local stations" row, Change.
   Presets work like a car radio (Starky, 2026-11-14): a tap tunes; holding a key for a second
   (`components/hold.js`: finger, mouse, or Enter/Space held) saves the station on the dial there and shows
   "Saved to preset N" for 2 s. On tape a hold is just a tap.
@@ -84,7 +107,7 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   underlined, mango while playing), `settings.css`, `mix.css`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
-- `npm run check-stations` checks every station is streaming and whether it allows taping (needs the station to send
+- `npm run check-stations` checks every FM1 station is streaming and whether it allows taping (needs the station to send
   `Access-Control-Allow-Origin`). Node rejects some certificates browsers accept (98.5 today): check those in a browser.
 
 ## Testing SIDE A
@@ -102,6 +125,10 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   (the ad test joins 44.1 and 22.05 kHz parts), `{ blocked: url }` makes the app's fetch of that station fail like a
   CORS refusal, `{ silentMic: true }` gives a mic that records silence. `tapeChecks(page)` collects the tape check
   lines.
+- `dial.spec.mjs`: ticker and wheel; `bands.spec.mjs`: world stations, FM2 by ZIP and by location (stand-ins for
+  Radio Browser, the ZIP lookup and https://local.test streams), the BAND key in each look. Keys are found by role:
+  links `/shelf$/i` and 'Settings', the wheel `slider` /^Tuning (wheel|knob)$/, the band `/^Band FM[12]/`.
+  `iphone-landscape` (WebKit, 750 x 340, Safari with its bars) is the tight size: check new parts fit there too.
 - The service worker only registers on https and on 127.0.0.1 (the test server), so a preview on localhost shows edits.
 
 ## Testing rules (from app-safety-kit)

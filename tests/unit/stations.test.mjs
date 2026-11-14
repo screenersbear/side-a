@@ -4,6 +4,7 @@ import {
   dialPercent, stepStation, freqText, isStation, stationAt, presetStation, cleanPresets, canTape,
 } from '../../logic/stations.js';
 import { STATION_LIST } from '../../data/stations.js';
+import { WORLD_LIST } from '../../data/world-stations.js';
 
 describe('STATIONS', () => {
   it('has a station for most of the dial, each with a name and a secure stream', () => {
@@ -20,8 +21,20 @@ describe('STATIONS', () => {
     const freqs = STATIONS.map((s) => s.freq);
     for (let i = 1; i < freqs.length; i++) expect(freqs[i]).toBeGreaterThan(freqs[i - 1]);
   });
-  it('uses real US FM channels (odd tenths)', () => {
-    for (const s of STATIONS) expect(Math.round(s.freq * 10) % 2).toBe(1);
+  it('puts US stations on real US FM channels (odd tenths)', () => {
+    for (const s of STATION_LIST) expect(Math.round(s.freq * 10) % 2).toBe(1);
+  });
+  it('puts world stations at their home frequency, or 0.1 MHz up where a US station has it', () => {
+    expect(WORLD_LIST.length).toBeGreaterThanOrEqual(10);
+    for (const s of WORLD_LIST) {
+      const home = s.home ?? s.freq;
+      expect(Math.round((s.freq - home) * 10)).toBe(s.home === undefined ? 0 : 1);
+      expect(s.place).toMatch(/\S+ \S+/);
+      if (s.home !== undefined) expect(STATION_LIST.some((us) => Math.abs(us.freq - s.home) < 0.05) || WORLD_LIST.some((w) => w !== s && w.freq === s.home)).toBe(true);
+    }
+  });
+  it('has FIP, Radio Nova and triple j, as in the mockup', () => {
+    expect(['FIP', 'Radio Nova', 'triple j'].map((n) => STATIONS.find((s) => s.name === n).place)).toEqual(['Paris France', 'Paris France', 'Sydney Australia']);
   });
   it('reaches from the bottom of the dial to the top', () => {
     expect(STATIONS[0].freq).toBeLessThan(89);
@@ -29,10 +42,10 @@ describe('STATIONS', () => {
   });
   it('sorts the list without changing the data file', () => {
     expect(STATIONS).not.toBe(STATION_LIST);
-    expect(STATIONS).toHaveLength(STATION_LIST.length);
+    expect(STATIONS).toHaveLength(STATION_LIST.length + WORLD_LIST.length);
   });
   it('sorts a list given out of order', () => {
-    const byFreq = [...STATION_LIST].reverse().sort((a, b) => a.freq - b.freq);
+    const byFreq = [...WORLD_LIST, ...STATION_LIST].reverse().sort((a, b) => a.freq - b.freq);
     expect(byFreq.map((s) => s.freq)).toEqual(STATIONS.map((s) => s.freq));
   });
   it('has a dial from 88 to 108 with a tick every 4', () => {

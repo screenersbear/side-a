@@ -1,7 +1,8 @@
 // What the speakers and the recorder have to do when the deck changes from one state to the next.
 // Returns a list of steps, in order, for audio/engine.js to carry out. Pure, so it can be tested.
-import { STATIONS, canTape } from './stations.js';
+import { canTape } from './stations.js';
 import { radioOn, tapeOn } from './deck.js';
+import { stationOf } from './bands.js';
 
 function blobOf(s) {
   return (s.tape && s.tape.blob) || null;
@@ -10,11 +11,12 @@ function blobOf(s) {
 function radioSteps(prev, next) {
   const on = radioOn(next);
   const was = radioOn(prev);
-  if (on && (!was || next.station !== prev.station)) {
+  const station = stationOf(next);
+  // A new station: another number on the dial, or the same number on the other band.
+  if (on && (!was || stationOf(prev) !== station)) {
     // tapeable: ask the station to share its sound with the app (CORS), so Record can tape what plays.
-    // station: which one, so the engine can read the song titles it sends.
-    const station = STATIONS[next.station];
-    return [{ do: 'radio.play', url: station.url, tapeable: canTape(station), station: next.station }];
+    // station: which one, and titles: where its song titles come from, so the engine can read them.
+    return [{ do: 'radio.play', url: station.url, tapeable: canTape(station), station: next.station, titles: station.titles }];
   }
   if (!on && was) return [{ do: 'radio.stop' }];
   return [];

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { lockScreen } from '../../logic/lock-screen.js';
-import { startState } from '../../logic/deck.js';
+import { startState, deckReducer } from '../../logic/deck.js';
+import { LOCAL } from './local-fixtures.mjs';
 import { STATIONS, stationAt } from '../../logic/stations.js';
 
 const KEXP = stationAt(90.3);
@@ -66,5 +67,13 @@ describe('lockScreen while recording', () => {
     const mic = { ...startState(), mode: 'tape', recording: true, playing: true, source: 'mic' };
     expect(lockScreen(mic)).toEqual({ title: 'Recording', artist: 'Mic to side A', album: 'SIDE A', playing: true, skip: '' });
     expect(lockScreen({ ...mic, source: 'line', station: KEXP }).artist).toBe('Taping 90.3 FM');
+  });
+});
+
+describe('lockScreen on FM2', () => {
+  it('shows the local station and where it is, and tapes it by its frequency', () => {
+    const s = deckReducer(startState(), { type: 'locals', list: LOCAL });
+    expect(lockScreen({ ...s, station: 3 })).toMatchObject({ title: 'Kiss FM', artist: '101.5 FM, New York City' });
+    expect(lockScreen(deckReducer(s, { type: 'rec', now: 0 }))).toMatchObject({ title: 'Recording', artist: 'Taping 90.7 FM' });
   });
 });

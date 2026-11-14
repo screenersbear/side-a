@@ -25,7 +25,13 @@ export function createSportLook(p) {
     'div',
     { class: 'panel' },
     eq,
-    el('div', { class: 'readout' }, el('div', { class: 'big-row' }, p.big, p.unit), p.status, p.line),
+    // The BAND key sits beside the big frequency (and the status under it, so it adds no height).
+    el(
+      'div',
+      { class: 'readout' },
+      el('div', { class: 'big-line' }, el('div', { class: 'big-stack' }, el('div', { class: 'big-row' }, p.big, p.unit), p.status), p.band),
+      p.line,
+    ),
     el('div', { class: 'tune-box' }, p.tuner.node, p.wheel.node, p.presets.node),
     el('div', { class: 'links' }, p.shelfLink, p.settingsLink),
   );

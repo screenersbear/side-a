@@ -1,8 +1,21 @@
 // Everything the deck screen shows, worked out from the deck's state: words, numbers and which keys are down.
-import { STATIONS, freqText, dialPercent, stationAt } from './stations.js';
+import { freqText, dialPercent, stationAt } from './stations.js';
 import { mmss } from './tape-names.js';
 import { songAt, songLine } from './songs.js';
 import { dialFreq, SEARCHING, STATIC_LINE } from './dial.js';
+import { BANDS, listOf, stationOf } from './bands.js';
+import { LOCAL_PREFIX, LOCAL_INTRO } from './local-stations.js';
+
+// On FM2 the status line starts "Local · ", so it's clear which dial this is.
+function radioStatus(s) {
+  if (s.between !== null) return s.playing ? (s.band === 'local' ? `${LOCAL_PREFIX}searching` : SEARCHING) : 'FM, off';
+  if (s.tuning) return 'Tuning in';
+  // The station and where it is ("KEXP, Seattle WA"); the lit preset key already shows which preset it is.
+  const station = stationOf(s);
+  const where = station.place ? `${station.name}, ${station.place}` : station.name;
+  const text = s.playing ? where : `${where}, off`;
+  return s.band === 'local' ? LOCAL_PREFIX + text : text;
+}
 
 function statusText(s, isTape) {
   if (s.notice) return s.notice;
@@ -10,12 +23,7 @@ function statusText(s, isTape) {
     if (s.recording) return 'Recording';
     return s.playing ? 'Tape, playing' : 'Tape, stopped';
   }
-  if (s.between !== null) return s.playing ? SEARCHING : 'FM, off';
-  if (s.tuning) return 'Tuning in';
-  // The station and where it is ("KEXP, Seattle WA"); the lit preset key already shows which preset it is.
-  const station = STATIONS[s.station];
-  const where = station.place ? `${station.name}, ${station.place}` : station.name;
-  return s.playing ? where : `${where}, off`;
+  return radioStatus(s);
 }
 
 // The song the station says it's playing, while it plays. Empty when it sends nothing.
@@ -26,7 +34,11 @@ function nowPlaying(s) {
 }
 
 function lineText(s, isTape, station) {
-  if (!isTape) return s.between !== null && s.playing ? STATIC_LINE : nowPlaying(s);
+  if (!isTape) {
+    if (s.between !== null && s.playing) return STATIC_LINE;
+    // The first time FM2 opens, until the user tunes.
+    return s.intro ? LOCAL_INTRO : nowPlaying(s);
+  }
   if (s.recording) return s.source === 'mic' ? 'Mic to side A' : `Taping ${freqText(station.freq)} FM`;
   if (s.draft) return 'Saving the tape';
   if (!s.tape) return 'Blank tape';
@@ -46,10 +58,11 @@ function cassetteLength(s) {
 }
 
 export function deckView(s) {
-  const station = STATIONS[s.station];
+  const list = listOf(s);
+  const station = list[s.station];
   const isTape = s.mode === 'tape';
   const counter = mmss(s.pos);
-  const dial = dialFreq(s);
+  const dial = dialFreq(s, list);
   return {
     isRadio: !isTape,
     isTape,
@@ -76,8 +89,10 @@ export function deckView(s) {
     rewLabel: isTape ? 'Rewind' : 'Previous station',
     ffLabel: isTape ? 'Fast forward' : 'Next station',
     presets: s.presets.map((f, i) => {
-      const at = stationAt(f);
-      return { n: i + 1, on: !isTape && s.between === null && at === s.station, label: `Preset ${i + 1}: ${freqText(f)} ${STATIONS[at].name}` };
+      const at = stationAt(f, list);
+      return { n: i + 1, on: !isTape && s.between === null && at === s.station, label: `Preset ${i + 1}: ${freqText(f)} ${list[at].name}` };
     }),
+    // The BAND key: { big: 'FM1', small: 'WORLD', label } (logic/bands.js).
+    band: BANDS[s.band],
   };
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { deckView } from '../../logic/deck-view.js';
-import { startState } from '../../logic/deck.js';
+import { startState, deckReducer } from '../../logic/deck.js';
+import { LOCAL } from './local-fixtures.mjs';
 import { stationAt } from '../../logic/stations.js';
 
 const WBGO = stationAt(88.3);
@@ -121,5 +122,35 @@ describe('deckView while recording', () => {
   it('while saving, shows the new tape and says it is saving', () => {
     const v = deckView(tape({ draft }));
     expect(v).toMatchObject({ line: 'Saving the tape', tapeTitle: 'Nov 14, 9:41 PM', tapeLength: 'C90' });
+  });
+});
+
+describe('deckView on the bands', () => {
+  const local = (extra = {}) => ({ ...deckReducer(startState({}, LOCAL), { type: 'locals', list: LOCAL }), tuning: false, ...extra });
+  it('shows the BAND key for the band showing', () => {
+    expect(deckView(fresh()).band).toMatchObject({ big: 'FM1', small: 'WORLD' });
+    expect(deckView(local()).band).toMatchObject({ big: 'FM2', small: 'LOCAL' });
+  });
+  it('starts FM2’s status line with "Local · ", with the station and its town', () => {
+    expect(deckView(local()).status).toBe('Local · WFUV, New York');
+    expect(deckView(local({ station: 4 })).status).toBe('Local · WAXQ');
+    expect(deckView(local({ playing: false })).status).toBe('Local · WFUV, New York, off');
+    expect(deckView(local({ between: 99.0 })).status).toBe('Local · searching');
+    expect(deckView(local({ between: 99.0, playing: false })).status).toBe('FM, off');
+  });
+  it('says what FM2 is the first time it opens, until the user tunes', () => {
+    expect(deckView(local()).line).toBe('Local stations near you, at their real frequencies.');
+    expect(deckView(local({ intro: false })).line).toBe('');
+    expect(deckView(local({ between: 99.0 })).line).toBe('Static. Keep turning.');
+  });
+  it('shows FM2’s frequency, wheel and presets', () => {
+    const v = deckView(local({ station: 3 }));
+    expect(v).toMatchObject({ big: '101.5', dial: 101.5, dialText: '101.5 FM, Kiss FM', line: 'Local stations near you, at their real frequencies.' });
+    expect(v.presets.map((p) => p.label)).toEqual(['Preset 1: 90.7 WFUV', 'Preset 2: 93.9 WNYC', 'Preset 3: 97.1 Hot 97', 'Preset 4: 101.5 Kiss FM']);
+    expect(v.presets.map((p) => p.on)).toEqual([false, false, false, true]);
+  });
+  it('tapes an FM2 station by its frequency', () => {
+    const s = deckReducer(local(), { type: 'rec', now: 0 });
+    expect(deckView(s).line).toBe('Taping 90.7 FM');
   });
 });

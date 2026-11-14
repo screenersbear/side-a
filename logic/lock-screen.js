@@ -1,7 +1,8 @@
 // What the phone's lock screen and Control Center show while SIDE A plays: the station or tape, the song, and
 // what their skip buttons do (change station on the radio, jump 10 seconds on a tape). Pure, so it can be tested;
 // audio/lock-screen.js puts it on the phone.
-import { STATIONS, freqText } from './stations.js';
+import { freqText } from './stations.js';
+import { stationOf } from './bands.js';
 import { KINDS } from './shelf.js';
 import { songAt } from './songs.js';
 import { SEARCHING } from './dial.js';
@@ -10,7 +11,7 @@ const BRAND = 'SIDE A';
 
 function radioInfo(s) {
   if (s.between !== null) return { title: SEARCHING, artist: `${freqText(s.between)} FM`, album: BRAND };
-  const station = STATIONS[s.station];
+  const station = stationOf(s);
   const where = station.place ? `${station.name}, ${station.place}` : station.name;
   const heard = s.playing && s.heard && s.heard.station === s.station ? s.heard.song : null;
   if (heard) return { title: heard.title, artist: heard.artist || where, album: where };
@@ -27,7 +28,7 @@ function tapeInfo(s) {
 }
 
 function recordingInfo(s) {
-  const station = STATIONS[s.station];
+  const station = stationOf(s);
   const from = s.source === 'mic' ? 'Mic to side A' : `Taping ${freqText(station.freq)} FM`;
   return { title: 'Recording', artist: from, album: BRAND };
 }

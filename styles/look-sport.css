@@ -98,6 +98,8 @@
 .look-sport .eq-row.on .eq b:nth-child(2) i { animation-duration: 1.15s; animation-delay: -.5s; }
 .look-sport .eq-row.on .eq b:nth-child(3) i { animation-duration: 1.8s; animation-delay: -1s; }
 
+.look-sport .big-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.look-sport .big-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .look-sport .big { font-size: 38px; font-stretch: 125%; font-style: italic; letter-spacing: -0.03em; line-height: .9; }
 
 .look-sport .tune-box {

@@ -35,7 +35,8 @@ export function createBoomboxLook(p) {
     // The song playing, under the speaker (the station and preset are in the readout up top).
     el('div', { class: 'now' }, icon('note'), p.line),
     p.transport.node,
-    el('div', { class: 'mode-row' }, p.mode.node, p.source.node),
+    // Radio / Tape, then the BAND key on the radio (the record-from switch on tape).
+    el('div', { class: 'mode-row' }, p.mode.node, p.band, p.source.node),
     el('div', { class: 'links' }, p.shelfLink, p.settingsLink),
   );
 
@@ -48,5 +49,5 @@ export function createBoomboxLook(p) {
     p.edge,
   );
 
-  return { node, live: speaker, update: () => {} };
+  return { node, live: speaker, update: (v) => { p.band.hidden = v.isTape; } };
 }

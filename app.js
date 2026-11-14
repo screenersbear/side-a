@@ -1,12 +1,16 @@
 // SIDE A: starts the deck, keeps its state, sends each change to the sound engine and the lock screen, and switches
 // between the deck, the tape shelf (with its tape menu), Settings and the mix screens (the address after # says which).
+// FM2 LOCAL's stations are found the first time FM2 is asked for (the local finder box), and kept on the phone.
 import { startState, deckReducer, SHORT_NOTICE_MS, savedText } from './logic/deck.js';
 import { deckView } from './logic/deck-view.js';
 import { soundPlan } from './logic/sound-plan.js';
-import { STATIONS } from './logic/stations.js';
+import { bandMemory } from './logic/bands.js';
 import { screenFor, hashFor } from './logic/routes.js';
 import { lookFor } from './logic/looks.js';
-import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadClicks, saveClicks } from './data/settings.js';
+import {
+  loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadLocalPresets, saveLocalPresets, loadClicks, saveClicks,
+} from './data/settings.js';
+import { loadLocal, saveLocal } from './data/local-stations.js';
 import { clickFor } from './logic/key-clicks.js';
 import { lockedOn } from './logic/dial.js';
 import { listTapes, newestTape, renameTape, deleteTape } from './data/tapes.js';
@@ -22,10 +26,12 @@ import { createShelfPage } from './pages/shelf.js';
 import { createSettingsPage } from './pages/settings.js';
 import { createMixing } from './pages/mixing.js';
 import { createTapeMenu } from './components/tape-menu.js';
+import { createLocalFinder } from './components/local-finder.js';
 
 const root = document.getElementById('app');
 const themeColor = document.querySelector('meta[name="theme-color"]');
-let state = startState({ ...loadSettings(), presets: loadPresets() });
+const local = loadLocal();
+let state = startState({ ...loadSettings(), presets: loadPresets(), localPresets: loadLocalPresets() }, local ? local.stations : []);
 let carryOut = () => {};
 let showLock = () => {};
 const awake = createStayAwake();
@@ -33,7 +39,18 @@ const awake = createStayAwake();
 const clicks = createKeyClicks();
 let clicksOn = loadClicks();
 
+// Each band's last station and presets, and the record source, kept on the phone.
+function remember(prev, next) {
+  if (['station', 'band', 'local', 'source', 'presets', 'other'].every((k) => next[k] === prev[k])) return;
+  const keep = bandMemory(next);
+  saveSettings({ ...keep, source: next.source });
+  savePresets(keep.presets);
+  saveLocalPresets(keep.localPresets);
+}
+
 function dispatch(action) {
+  // FM2 before its stations are found: ask where the user is first.
+  if (action.type === 'band' && state.band === 'world' && !state.local.length && !state.recording) return finder.open();
   const next = deckReducer(state, action);
   if (next === state) return;
   const prev = state;
@@ -42,8 +59,7 @@ function dispatch(action) {
   carryOut(soundPlan(prev, next, action.type));
   // The tuning wheel clicks softly as it locks onto a station.
   if (action.type === 'dial' && clicksOn && lockedOn(prev, next)) clicks.play('tick');
-  if (next.station !== prev.station || next.source !== prev.source) saveSettings({ freq: STATIONS[next.station].freq, source: next.source });
-  if (next.presets !== prev.presets) savePresets(next.presets);
+  remember(prev, next);
   // "Saved to preset 2" shows for a moment, then the status line comes back.
   if (action.type === 'savePreset' && next.notice === savedText(action.key)) {
     setTimeout(() => dispatch({ type: 'calm', text: next.notice }), SHORT_NOTICE_MS);
@@ -108,7 +124,16 @@ const shelf = createShelfPage({
   },
   onNewMix: () => mixing.fresh(),
 });
-const settings = createSettingsPage({ onPick: wearLook, onClicks: setClicks });
+const settings = createSettingsPage({ onPick: wearLook, onClicks: setClicks, onLocal: () => finder.open() });
+// Local stations found: kept on the phone, and FM2 opens on them, on the deck.
+const finder = createLocalFinder({
+  onFound: (found) => {
+    saveLocal(found);
+    settings.showLocal(found.where.label);
+    dispatch({ type: 'locals', list: found.stations });
+    location.hash = hashFor('deck');
+  },
+});
 
 // Every key on the deck and in Settings clicks.
 function setClicks(on) {
@@ -167,11 +192,12 @@ function showScreen() {
   if (screen === 'clip') mixing.showClip();
 }
 
-root.replaceChildren(deck.node, shelf.node, settings.node, ...mixing.nodes, menu.node);
+root.replaceChildren(deck.node, shelf.node, settings.node, ...mixing.nodes, menu.node, finder.node);
 deck.update(deckView(state));
 showLock(state);
 settings.show(deck.look);
 settings.showClicks(clicksOn);
+settings.showLocal(local ? local.where.label : null);
 if (themeColor) themeColor.setAttribute('content', lookFor(deck.look).body);
 showScreen();
 window.addEventListener('hashchange', showScreen);

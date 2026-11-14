@@ -12,11 +12,14 @@ export function createDeckLook(p) {
   const meters = createMeters();
   const recFrom = el('div', { class: 'rec-from' }, el('span', { class: 'lab', 'aria-hidden': 'true' }, 'Rec from'), p.source.node);
 
+  // The BAND key, under Mode, on the radio (Rec from takes its place on tape).
+  const band = el('div', { class: 'band-box' }, el('span', { class: 'lab', 'aria-hidden': 'true' }, 'Band'), p.band);
   const side = el(
     'div',
     { class: 'side' },
     el('span', { class: 'lab', 'aria-hidden': 'true' }, 'Mode'),
     p.mode.node,
+    band,
     recFrom,
     meters,
   );
@@ -48,5 +51,8 @@ export function createDeckLook(p) {
     p.edge,
   );
 
-  return { node, live: meters, update: (v) => { recFrom.hidden = !v.isTape; } };
+  return { node, live: meters, update: (v) => {
+    recFrom.hidden = !v.isTape;
+    band.hidden = v.isTape;
+  } };
 }

@@ -6,7 +6,6 @@ import { startMic, startLine, measureSeconds } from './recorder.js';
 import { watchTitles } from './now-playing.js';
 import { recordError, radioError, worthKeeping, tapeSeconds } from '../logic/recording.js';
 import { addSong } from '../logic/songs.js';
-import { STATIONS } from '../logic/stations.js';
 import { saveTape } from '../data/tapes.js';
 import { checkTape } from './sound-check.js';
 
@@ -30,9 +29,9 @@ export function createEngine(dispatch) {
 
   // While the radio plays: show each song the station names, and note it on the tape when the radio is taped
   // (with the second it started on the tape).
-  function listen(station) {
+  function listen({ station, url, titles: from }) {
     hangUp();
-    titles = watchTitles(STATIONS[station], (text) => {
+    titles = watchTitles({ url, titles: from }, (text) => {
       lastText = text;
       dispatch({ type: 'heard', station, text });
       if (job && job.line && job.startedAt) job.songs = addSong(job.songs, seconds(job), text);
@@ -96,7 +95,7 @@ export function createEngine(dispatch) {
   const run = {
     'radio.play': (st) => {
       radio.play(st.url, st.tapeable);
-      listen(st.station);
+      listen(st);
     },
     'radio.stop': () => {
       radio.stop();

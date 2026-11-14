@@ -1,5 +1,5 @@
-// The parts every look of the deck has: the cassette, transport keys, readout, tuner, presets, the two switches
-// and the Shelf and Settings keys (raised keys with an icon, HANDOFF "Depth pass"). A look (pages/looks/) only arranges them; update(view) fills them in.
+// The parts every look of the deck has: the cassette, transport keys, readout, tuner, presets, the BAND key (big FM1
+// or FM2, small WORLD or LOCAL, HANDOFF "Bands"), the two switches and the Shelf and Settings keys (raised keys with an icon, HANDOFF "Depth pass"). A look (pages/looks/) only arranges them; update(view) fills them in.
 import { el, setText } from './el.js';
 import { icon } from './icons.js';
 import { createCassette } from './cassette.js';
@@ -24,6 +24,7 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     source: createSwitch('Record from', [{ id: 'mic', text: 'MIC' }, { id: 'line', text: 'RADIO IN' }], (id) => send(id === 'mic' ? 'toMic' : 'toLine')),
     tuner: createTuner(),
     wheel: createTuneWheel(wheel, { onTune: (freq) => send('dial', { freq }), onStep: (step) => send('dial', { step }) }),
+    band: el('button', { class: 'tk bk', type: 'button', 'data-key': 'band', onclick: () => send('band') }, el('span', { class: 'bk1' }), el('span', { class: 'bk2' })),
     presets: createPresets(PRESET_FREQS.length, { onPick: (key) => send('preset', { key }), onHold: (key) => send('savePreset', { key }) }),
     mode: createSwitch('Mode', [{ id: 'radio', text: 'RADIO' }, { id: 'tape', text: 'TAPE' }], (id) => send(id === 'radio' ? 'toRadio' : 'toTape')),
     shelfLink: el('a', { class: 'tk', href: '#/shelf' }, icon('shelf'), shelfText),
@@ -48,6 +49,9 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     parts.tuner.update(v);
     parts.wheel.update(v.dial, v.dialText);
     parts.presets.update(v.presets);
+    setText(parts.band.firstChild, v.band.big);
+    setText(parts.band.lastChild, v.band.small);
+    if (parts.band.getAttribute('aria-label') !== v.band.label) parts.band.setAttribute('aria-label', v.band.label);
     parts.mode.update(v.isTape ? 'tape' : 'radio');
   }
 

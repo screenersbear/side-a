@@ -1,11 +1,12 @@
 // The deck: what state it's in, and what each button and event does to it.
 // Pure functions only (no sound, no screen), so every rule here is easy to test.
 // The sound follows the state: see sound-plan.js.
-import { STATIONS, stepStation, stationAt, presetStation, cleanPresets, canTape } from './stations.js';
+import { stepStation, presetStation, canTape } from './stations.js';
 import { tapeTitle } from './tape-names.js';
 import { NOT_ALLOWED } from './recording.js';
 import { parseNowPlaying } from './songs.js';
 import { lockAt, stepDial, seekFrom, onDial, dialFreq, TUNE_FIRST } from './dial.js';
+import { listOf, stationOf, tune, startBands, switchBand, takeLocals } from './bands.js';
 
 // Rewind and fast forward jump this many seconds.
 export const SKIP_SECONDS = 10;
@@ -13,19 +14,19 @@ export const SKIP_SECONDS = 10;
 // How long a short message ("Saved to preset 2") stays before the status line comes back.
 export const SHORT_NOTICE_MS = 2000;
 
-// The deck when the app opens: radio, quiet (phones don't let sound start on its own),
-// on the last station listened to (saved as its frequency), or preset 1. The presets saved on the phone, if any.
-export function startState(saved = {}) {
+// The deck when the app opens: radio, quiet (phones don't let sound start on its own), on the band and the last
+// station listened to (saved as its frequency), or preset 1. The presets saved on the phone, if any. `local`: FM2's
+// stations, kept on the phone (logic/bands.js).
+export function startState(saved = {}, local = []) {
   const s = saved || {};
-  const last = stationAt(s.freq);
-  const presets = cleanPresets(s.presets);
+  const { station, presets, ...bands } = startBands(s, local);
   return {
     mode: 'radio', // 'radio' or 'tape'
     playing: false, // sound on: radio, a tape, or recording
     recording: false,
     tuning: false, // radio pressed, waiting for the station to start
     source: s.source === 'line' ? 'line' : 'mic', // what Record tapes in tape mode: the mic or the radio
-    station: last >= 0 ? last : presetStation(0, presets),
+    station, // the station on the dial: its number in the band's list
     between: null, // the frequency the tuning wheel left the dial on, between stations (null: on the station)
     presets, // the four preset keys' frequencies
     tape: null, // the tape in the deck: { id, kind, title, duration, created, blob }
@@ -33,6 +34,7 @@ export function startState(saved = {}) {
     pos: 0, // seconds: where the tape is, or how long the recording is
     notice: '', // a short message that replaces the status line
     heard: null, // the song a station last named: { station, song: { artist, title } or null between songs }
+    ...bands, // band ('world' or 'local'), local (FM2's stations), other (the other band's place), intro (FM2's hello)
   };
 }
 
@@ -50,18 +52,14 @@ function hasSound(tape) {
   return Boolean(tape && tape.blob);
 }
 
-function tune(s, station) {
-  return { ...s, mode: 'radio', station, between: null, playing: true, recording: false, tuning: true, notice: '' };
-}
-
 function record(s, now) {
   // Record again while recording stops it, the same as Stop.
   if (s.recording) return stop(s);
   const source = s.mode === 'radio' ? 'line' : s.source;
   if (source === 'line' && s.between !== null) return { ...s, notice: TUNE_FIRST };
-  if (source === 'line' && !canTape(STATIONS[s.station])) return { ...s, notice: NOT_ALLOWED };
+  if (source === 'line' && !canTape(stationOf(s))) return { ...s, notice: NOT_ALLOWED };
   const kind = source === 'mic' ? 'voice' : 'radio';
-  const station = STATIONS[s.station];
+  const station = stationOf(s);
   const draft = { kind, title: tapeTitle(kind, station, now), from: s.mode };
   // A radio tape remembers its station, for the song titles and the shelf ("101.9 · NIGHT SWIM").
   if (kind === 'radio') Object.assign(draft, { freq: station.freq, station: station.name });
@@ -86,7 +84,8 @@ function stop(s) {
 // Rewind (-1) or fast forward (+1): changes station on the radio, winds the tape on tape.
 function wind(s, direction) {
   if (s.recording) return s;
-  if (s.mode === 'radio') return tune(s, s.between === null ? stepStation(s.station, direction) : seekFrom(s.between, direction));
+  const list = listOf(s);
+  if (s.mode === 'radio') return tune(s, s.between === null ? stepStation(s.station, direction, list.length) : seekFrom(s.between, direction, list));
   if (!hasSound(s.tape)) return s;
   const pos = Math.min(s.tape.duration, Math.max(0, s.pos + direction * SKIP_SECONDS));
   return pos === s.pos ? s : { ...s, pos };
@@ -94,7 +93,7 @@ function wind(s, direction) {
 
 // A preset key (0 to 3) tunes to its station.
 function pickPreset(s, key) {
-  const index = presetStation(key, s.presets);
+  const index = presetStation(key, s.presets, listOf(s));
   if (index < 0) return s;
   if (s.mode === 'radio' && s.playing && s.between === null && s.station === index) return s;
   return tune(s, index);
@@ -104,11 +103,12 @@ function pickPreset(s, key) {
 // and plays it; between stations the radio goes quiet. Not while recording, like Next and Previous.
 function dial(s, { freq, step }) {
   if (s.recording) return s;
-  const f = step ? stepDial(dialFreq(s), step) : onDial(freq);
-  const at = lockAt(f);
+  const list = listOf(s);
+  const f = step ? stepDial(dialFreq(s, list), step, list) : onDial(freq);
+  const at = lockAt(f, list);
   if (at >= 0) return s.mode === 'radio' && s.playing && s.between === null && s.station === at ? s : tune(s, at);
   if (s.mode === 'radio' && s.playing && s.between === f) return s;
-  return { ...s, mode: 'radio', between: f, playing: true, tuning: false, notice: '' };
+  return { ...s, mode: 'radio', between: f, playing: true, tuning: false, notice: '', intro: false };
 }
 
 function toRadio(s) {
@@ -186,10 +186,10 @@ function heard(s, station, text) {
 // Holding a preset key (0 to 3) saves the station on the dial there, like a car radio. Only on the radio:
 // on tape a hold is just a press (it tunes to the preset).
 function savePreset(s, key) {
-  if (presetStation(key, s.presets) < 0) return s;
+  if (presetStation(key, s.presets, listOf(s)) < 0) return s;
   if (s.mode !== 'radio') return pickPreset(s, key);
   if (s.between !== null) return { ...s, notice: TUNE_FIRST };
-  const freq = STATIONS[s.station].freq;
+  const freq = stationOf(s).freq;
   return { ...s, presets: s.presets.map((f, i) => (i === key ? freq : f)), notice: savedText(key) };
 }
 
@@ -248,6 +248,8 @@ export function deckReducer(s, action = {}) {
     case 'ff': return wind(s, 1);
     case 'preset': return pickPreset(s, action.key);
     case 'dial': return dial(s, action);
+    case 'band': return switchBand(s);
+    case 'locals': return takeLocals(s, action.list);
     case 'savePreset': return savePreset(s, action.key);
     case 'calm': return calm(s, action.text);
     case 'hidden': return leftApp(s);

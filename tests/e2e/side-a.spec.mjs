@@ -39,6 +39,12 @@ function fakeSources({ micError, blocked }) {
     });
     return Promise.resolve(new Response(stream, { headers: { 'content-type': 'audio/mpeg' } }));
   };
+  if (micError) {
+    // WebKit on GitHub's Linux machines has no mic or recorder at all, so the app would stop at "This browser
+    // can't record." Stand in for both, so the test reaches the mic refusing (what an iPhone does).
+    if (!navigator.mediaDevices) Object.defineProperty(navigator, 'mediaDevices', { value: {}, configurable: true });
+    if (!('MediaRecorder' in window)) window.MediaRecorder = class { static isTypeSupported() { return false; } };
+  }
   if (!navigator.mediaDevices) return;
   navigator.mediaDevices.getUserMedia = async () => {
     if (micError) throw new DOMException('no', micError);

@@ -39,10 +39,10 @@ describe('soundPlan: radio', () => {
     const steps = plan({ ...radio(KEXP), tuning: false }, { type: 'rec', now: NOW });
     expect(steps).toEqual([{ do: 'rec.start', source: 'line', draft: { kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio', freq: 90.3, station: 'KEXP' } }]);
   });
-  it('taping the radio from tape mode turns the radio on', () => {
+  it('taping the radio from tape mode turns the radio on first, so the tape starts with its first sound', () => {
     const steps = plan(tapeIn({ source: 'line', station: KEXP }), { type: 'rec', now: NOW });
-    expect(steps.map((s) => s.do)).toEqual(['rec.start', 'radio.play']);
-    expect(steps[1]).toMatchObject({ url: STATIONS[KEXP].url, station: KEXP });
+    expect(steps.map((s) => s.do)).toEqual(['radio.play', 'rec.start']);
+    expect(steps[0]).toMatchObject({ url: STATIONS[KEXP].url, station: KEXP });
   });
   it('a station that does not allow taping plays without asking it to share its sound', () => {
     const WFMU = stationAt(91.1);
@@ -101,6 +101,11 @@ describe('soundPlan: recording', () => {
     const rec = deckReducer(radio(), { type: 'rec', now: NOW });
     expect(plan(rec, 'stop')).toEqual([{ do: 'rec.stop' }]);
     expect(plan(deckReducer(rec, { type: 'stop' }), 'stop')).toEqual([{ do: 'radio.stop' }]);
+  });
+  it('anything that ends a radio tape and the radio together cuts the tape before the station goes', () => {
+    const rec = deckReducer(radio(), { type: 'rec', now: NOW });
+    expect(plan(rec, { type: 'lost', message: 'x' }).map((s) => s.do)).toEqual(['rec.stop', 'radio.stop']);
+    expect(plan(rec, { type: 'load', tape: TAPE }).map((s) => s.do)).toEqual(['rec.stop', 'radio.stop', 'tape.load', 'tape.play']);
   });
   it('Record on a station that does not allow it needs no sound changes', () => {
     expect(plan(radio(stationAt(91.1)), { type: 'rec', now: NOW })).toEqual([]);

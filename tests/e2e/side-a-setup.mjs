@@ -3,17 +3,23 @@
 // The stations are a stand-in tone, the mic is a test signal and every test is muted, so no internet is needed.
 import { expect } from '@playwright/test';
 import { STATIONS } from '../../logic/stations.js';
+import { Mp3Encoder } from '../../vendor/lamejs.js';
 
-// A few seconds of quiet tone as a WAV file, standing in for a station's stream.
-function toneWav(seconds = 20, rate = 8000) {
+// Half a minute of quiet tone as an MP3 stream, standing in for a station's (made with the app's own encoder).
+const tones = new Map();
+export function toneMp3(seconds = 30, rate = 44100) {
+  const name = `${seconds}s at ${rate}`;
+  if (tones.has(name)) return tones.get(name);
   const n = seconds * rate;
-  const buf = Buffer.alloc(44 + n);
-  buf.write('RIFF', 0); buf.writeUInt32LE(36 + n, 4); buf.write('WAVE', 8);
-  buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
-  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate, 28); buf.writeUInt16LE(1, 32); buf.writeUInt16LE(8, 34);
-  buf.write('data', 36); buf.writeUInt32LE(n, 40);
-  for (let i = 0; i < n; i++) buf[44 + i] = 128 + Math.round(8 * Math.sin((i / rate) * 2 * Math.PI * 440));
-  return buf;
+  const pcm = new Int16Array(n);
+  for (let i = 0; i < n; i++) pcm[i] = Math.round(2000 * Math.sin((i / rate) * 2 * Math.PI * 440));
+  const encoder = new Mp3Encoder(1, rate, 64);
+  const parts = [];
+  const keep = (b) => parts.push(Buffer.from(b.buffer, b.byteOffset, b.length));
+  for (let at = 0; at < n; at += 1152) keep(encoder.encodeBuffer(pcm.subarray(at, at + 1152)));
+  keep(encoder.flush());
+  tones.set(name, Buffer.concat(parts));
+  return tones.get(name);
 }
 
 // In the page: muted sound and a test-signal mic (silentMic: a mic that hands over nothing but silence, the way a
@@ -22,26 +28,16 @@ function fakeSources({ micError, silentMic }) {
   // Tests stay silent (Starky's rule: mute while testing the radio).
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function mutedPlay() {
-    if (!this.throughWebAudio) this.muted = true;
+    this.muted = true;
     return play.call(this);
   };
-  // And they stay muted (the radio unmutes the plain element that takes over after taping).
+  // And they stay muted.
   const muted = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted');
   Object.defineProperty(HTMLMediaElement.prototype, 'muted', {
     configurable: true,
     get() { return muted.get.call(this); },
-    set(on) { muted.set.call(this, this.throughWebAudio ? on : true); },
+    set() { muted.set.call(this, true); },
   });
-  // Except an element taped through Web Audio: a muted element hands Web Audio silence, and its sound now goes
-  // only through Web Audio, which is silenced below.
-  if (window.AudioContext) {
-    const wire = AudioContext.prototype.createMediaElementSource;
-    AudioContext.prototype.createMediaElementSource = function unmutedSource(element) {
-      element.throughWebAudio = true;
-      muted.set.call(element, false);
-      return wire.call(this, element);
-    };
-  }
   // Web Audio too (the mix plays through it): every live context's speakers go through a silent gain.
   if (window.BaseAudioContext) {
     const speakers = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'destination');
@@ -82,24 +78,23 @@ function fakeSources({ micError, silentMic }) {
   };
 }
 
-// In the page: the station named in blocked plays but won't share its sound, like a real station without CORS.
-// Asked to share (crossOrigin), it fails to load; asked the plain way, it plays. This is staged in the page
-// because Playwright's stand-in answers skip the browser's CORS check.
+// In the page: the station named in blocked plays but won't let the app read its stream, like a real station
+// without CORS. The app's own connection to it fails the way a CORS refusal does; the plain audio element plays it.
+// Staged in the page because Playwright's stand-in answers skip the browser's CORS check.
 function blockStation(blocked) {
-  const src = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
-  Object.defineProperty(HTMLMediaElement.prototype, 'src', {
-    configurable: true,
-    get() { return src.get.call(this); },
-    set(value) { src.set.call(this, value === blocked && this.crossOrigin ? 'data:audio/wav;base64,' : value); },
-  });
+  const fetch = window.fetch;
+  window.fetch = function refused(input, init) {
+    const url = typeof input === 'string' ? input : input.url;
+    return url === blocked ? Promise.reject(new TypeError('Failed to fetch')) : fetch.call(this, input, init);
+  };
 }
 
-// Every station plays a tone (with a CORS header, so it shares its sound and can be taped).
-export async function openDeck(page, { micError = '', blocked = '', silentMic = false } = {}) {
-  const wav = toneWav();
-  const headers = { 'content-type': 'audio/wav', 'access-control-allow-origin': '*' };
+// Every station plays a tone, or `stream` (with a CORS header, so the app can read it and tape it).
+export async function openDeck(page, { micError = '', blocked = '', silentMic = false, stream = null } = {}) {
+  const body = stream || toneMp3();
+  const headers = { 'content-type': 'audio/mpeg', 'access-control-allow-origin': '*' };
   for (const s of STATIONS) {
-    await page.route(s.url, (route) => route.fulfill({ status: 200, body: wav, headers }));
+    await page.route(s.url, (route) => route.fulfill({ status: 200, body, headers }));
   }
   await page.addInitScript(fakeSources, { micError, silentMic });
   if (blocked) await page.addInitScript(blockStation, blocked);
@@ -108,6 +103,11 @@ export async function openDeck(page, { micError = '', blocked = '', silentMic = 
 }
 
 export const status = (page) => page.locator('.status');
+// Can this browser feed the radio player itself (MediaSource)? Only then can it tape the radio.
+export const canFeed = (page) => page.evaluate(() => {
+  const MS = window.ManagedMediaSource || window.MediaSource;
+  return Boolean(MS && MS.isTypeSupported('audio/mpeg'));
+});
 
 // What the tape check found for each new tape (its "SIDE A tape check: {...}" console lines, audio/sound-check.js).
 export function tapeChecks(page) {

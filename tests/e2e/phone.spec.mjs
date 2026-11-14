@@ -1,9 +1,9 @@
-// SIDE A in a real browser, the phone side of things: leaving the app mid-recording, the radio back on a plain
-// audio element after taping (so a locked phone keeps playing it), the lock screen, and closing the app. Shared set-up:
-// side-a-setup.mjs.
+// SIDE A in a real browser, the phone side of things: leaving the app mid-recording, the radio on one plain audio
+// element with no Web Audio (so a locked phone keeps playing it, taping or not), the lock screen, and closing the app.
+// Shared set-up: side-a-setup.mjs.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
-import { openDeck, status, line, key, addTapes } from './side-a-setup.mjs';
+import { canFeed, openDeck, status, line, key, addTapes } from './side-a-setup.mjs';
 
 // No service worker here: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
 test.use({ serviceWorkers: 'block' });
@@ -33,13 +33,12 @@ test('leaving the app while recording stops it and saves the tape', async ({ pag
   await expect(page.getByRole('button', { name: /: Voice note, / })).toHaveCount(1);
 });
 
-test('after taping the radio, a plain audio element plays it again: Web Audio only while taping', async ({ page }) => {
+test('the radio plays on one audio element over one connection, never Web Audio, and taping it opens no other', async ({ page }) => {
   await page.addInitScript(() => {
-    window.radioLog = { tapped: [], contexts: [], played: [] };
+    window.radioLog = { webAudio: 0, played: [] };
     const make = AudioContext.prototype.createMediaElementSource;
     AudioContext.prototype.createMediaElementSource = function logged(el) {
-      window.radioLog.tapped.push(el);
-      window.radioLog.contexts.push(this);
+      window.radioLog.webAudio += 1;
       return make.call(this, el);
     };
     const play = HTMLMediaElement.prototype.play;
@@ -48,29 +47,33 @@ test('after taping the radio, a plain audio element plays it again: Web Audio on
       return play.call(this);
     };
   });
+  const url = STATIONS[stationAt(88.3)].url;
+  const connections = [];
+  page.on('request', (r) => r.url() === url && connections.push(r));
   await openDeck(page);
-  test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
+  test.skip(!(await canFeed(page)), "this browser can't feed the radio player itself");
+  // Web Audio on a live stream is silent on iPhones and stops when the phone locks, so the radio never uses it.
   const radio = () => page.evaluate(() => {
-    const { tapped, contexts, played } = window.radioLog;
-    const now = [...new Set(played)].filter((a) => !a.paused && a.src.startsWith('http'));
-    return { taps: tapped.length, closed: contexts.every((c) => c.state === 'closed'), playing: now.length, plain: now.every((a) => !tapped.includes(a)) };
+    const { webAudio, played } = window.radioLog;
+    const elements = [...new Set(played)];
+    return { webAudio, elements: elements.length, playing: elements.filter((a) => !a.paused).length };
   });
   await key(page, 'Play').click();
   await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
-  await expect.poll(radio).toEqual({ taps: 0, closed: true, playing: 1, plain: true });
-  await key(page, 'Record').click();
-  await expect(page.locator('.big')).not.toHaveText('00:00', { timeout: 5000 });
-  await expect.poll(radio).toEqual({ taps: 1, closed: false, playing: 1, plain: false });
-  await key(page, 'Stop').click();
-  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
-  // A fresh element takes over and the taped one (with its Web Audio) is let go.
-  await expect.poll(radio, { timeout: 5000 }).toEqual({ taps: 1, closed: true, playing: 1, plain: true });
-  // Taping again works, from the new element.
-  await key(page, 'Record').click();
-  await expect(line(page)).toHaveText('Taping 88.3 FM');
-  await expect.poll(radio).toEqual({ taps: 2, closed: false, playing: 1, plain: false });
-  await key(page, 'Stop').click();
-  await expect.poll(radio, { timeout: 5000 }).toEqual({ taps: 2, closed: true, playing: 1, plain: true });
+  await expect.poll(radio).toEqual({ webAudio: 0, elements: 1, playing: 1 });
+  // Taping twice: the same element plays on, uninterrupted, and the station is still only called once
+  // (Starky: never a second connection, so the tape is what was heard, from the moment REC is pressed).
+  for (let i = 0; i < 2; i++) {
+    await key(page, 'Record').click();
+    await expect(line(page)).toHaveText('Taping 88.3 FM');
+    await expect(page.locator('.big')).not.toHaveText('00:00', { timeout: 5000 });
+    await key(page, 'Stop').click();
+    await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
+  }
+  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await expect(page.getByRole('button', { name: /^88\.3 WBGO Jazz.*Taped from radio/ })).toHaveCount(2);
+  expect(await radio()).toEqual({ webAudio: 0, elements: 1, playing: 1 });
+  expect(connections).toHaveLength(1);
 });
 
 test('the lock screen shows the station and its song, and its buttons work the deck', async ({ page }) => {

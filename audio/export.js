@@ -1,9 +1,9 @@
 // Makes a tape into a file to share: MP3 (made on the phone with LAME, 192 kbps) or WAV. A mixtape already is a
-// WAV file, so WAV shares it as it is. The work pauses while the app is hidden and carries on when it's back.
+// WAV file and a radio tape of an MP3 station an MP3, so those share as they are. The work pauses while the app is hidden and carries on when it's back.
 import { decodeTape } from './mixdown.js';
 import { encodeWav } from '../logic/wav.js';
 import { encodeMp3 } from '../logic/mp3.js';
-import { formatFor, fileName, isWav } from '../logic/export.js';
+import { formatFor, fileName, isWav, isMp3 } from '../logic/export.js';
 
 const stopped = () => Object.assign(new Error('stopped'), { name: 'AbortError' });
 
@@ -26,7 +26,8 @@ function whenVisible() {
 export async function makeFile(tape, formatId, onProgress = () => {}, job = {}) {
   const format = formatFor(formatId);
   const name = fileName(tape.title, format.ext);
-  if (format.id === 'wav' && isWav(tape)) return { blob: tape.blob, name };
+  // Already that kind of file (a mixtape as WAV, a radio tape of an MP3 station as MP3): shared as it is.
+  if ((format.id === 'wav' && isWav(tape)) || (format.id === 'mp3' && isMp3(tape))) return { blob: tape.blob, name };
 
   // Lets the screen draw, waits while the app is hidden, and stops if asked.
   const breathe = async () => {

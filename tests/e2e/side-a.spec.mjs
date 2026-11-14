@@ -2,7 +2,7 @@
 // the mic refusing, and the upright-phone prompt. Shared set-up: side-a-setup.mjs.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
-import { openDeck, status, line, key, pickLook, tapeChecks } from './side-a-setup.mjs';
+import { canFeed, toneMp3, openDeck, status, line, key, pickLook, tapeChecks } from './side-a-setup.mjs';
 
 // No service worker here: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
 test.use({ serviceWorkers: 'block' });
@@ -150,10 +150,10 @@ test('a recording that comes out silent says so', async ({ page, browserName }) 
   await expect(page.getByRole('button', { name: /: Voice note, / })).toHaveCount(1);
 });
 
-test('tapes the radio and files it under Radio', async ({ page, browserName }) => {
+test('tapes the radio and files it under Radio', async ({ page }) => {
   const checks = tapeChecks(page);
   await openDeck(page);
-  test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
+  test.skip(!(await canFeed(page)), "this browser can't feed the radio player itself");
   await key(page, 'Play').click();
   await key(page, 'Record').click();
   await expect(line(page)).toHaveText('Taping 88.3 FM');
@@ -165,17 +165,12 @@ test('tapes the radio and files it under Radio', async ({ page, browserName }) =
   await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'RADIO' })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => checks.length, { timeout: 5000 }).toBe(1);
-  if (browserName === 'webkit') {
-    // WebKit (every iPhone browser) hands Web Audio silence from a live stream, so the tape is silent: the cause
-    // of silent radio tapes on iPhones (2026-11-14). The deck says so instead of failing quietly.
-    expect(checks[0]).toMatchObject({ result: 'silent', kind: 'radio', heard: 'silence', contextAtEnd: 'running' });
-    await expect(status(page)).toHaveText('This recording came out silent.');
-  } else {
-    // The tape has the station's sound in it, and Web Audio heard it while taping.
-    expect(checks[0]).toMatchObject({ result: 'sound', kind: 'radio', contextAtEnd: 'running' });
-    expect(checks[0].heard).toMatch(/dB$/);
-    await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
-  }
+  // The tape is the station's own sound, cut from the stream the app played, in every browser. (It used to go
+  // through Web Audio, which hears only silence from a live stream in WebKit: silent radio tapes on iPhones, fixed
+  // 2026-11-14.)
+  expect(checks[0]).toMatchObject({ result: 'sound', kind: 'radio', mime: 'audio/mpeg', format: 'mp3' });
+  expect(checks[0].frames).toBeGreaterThan(0);
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
   // Stop again turns the radio off. The tape waits in the deck.
   await key(page, 'Stop').click();
   await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ, off');
@@ -191,13 +186,32 @@ test('tapes the radio and files it under Radio', async ({ page, browserName }) =
   await expect(page.getByText('No mixtapes yet.')).toBeVisible();
 });
 
+test('Record with the radio off turns it on and tapes from its first sound, at the right speed through an ad at another rate', async ({ page }) => {
+  const checks = tapeChecks(page);
+  // Two seconds at 44.1 kHz, then the rest at 22.05 kHz, the way a station's ads can come in at another rate.
+  await openDeck(page, { stream: Buffer.concat([toneMp3(2, 44100), toneMp3(30, 22050)]) });
+  test.skip(!(await canFeed(page)), "this browser can't feed the radio player itself");
+  await key(page, 'Record').click();
+  await expect(line(page)).toHaveText('Taping 88.3 FM');
+  await expect(page.locator('.big')).toHaveText('00:06', { timeout: 10000 });
+  await key(page, 'Stop').click();
+  await expect.poll(() => checks.length, { timeout: 5000 }).toBe(1);
+  // Both rates made it onto one tape, made again at one rate, so it lasts as long as what was heard (taped as it
+  // came, the 22.05 kHz part would play back at the wrong speed).
+  expect(checks[0]).toMatchObject({ result: 'sound', kind: 'radio', mime: 'audio/mpeg', runs: 2 });
+  expect(Math.abs(checks[0].seconds - checks[0].heardSeconds)).toBeLessThanOrEqual(0.6);
+  expect(checks[0].heardSeconds).toBeGreaterThan(5);
+  // The radio played on through the change.
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
+});
+
 test('taping a station that names its songs puts the song on the tape', async ({ page }) => {
   const song = { results: [{ play_type: 'trackplay', artist: 'The Paper Lanterns', song: 'Night Swim' }] };
   await page.route('https://api.kexp.org/v2/plays/**', (route) => route.fulfill({
     status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(song),
   }));
   await openDeck(page);
-  test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
+  test.skip(!(await canFeed(page)), "this browser can't feed the radio player itself");
   await page.getByRole('button', { name: /^Preset 3:/ }).click();
   // The deck shows the song while the station plays, in every look.
   await expect(status(page)).toHaveText('KEXP, Seattle WA');

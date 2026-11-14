@@ -49,7 +49,7 @@ export function createEngine(dispatch) {
     const j = { draft: step.draft, line: step.source === 'line', startedAt: 0, timer: 0, session: null, stopped: false, songs: [] };
     job = j;
     const onEnd = () => dispatch({ type: 'stop' });
-    const start = step.source === 'line' ? startLine({ radio, onEnd }) : startMic({ onEnd });
+    const start = step.source === 'line' ? startLine({ radio }) : startMic({ onEnd });
     j.ready = start.then(
       (session) => {
         j.session = session;
@@ -107,11 +107,7 @@ export function createEngine(dispatch) {
     'tape.pause': () => tape.pause(),
     'tape.seek': (st) => tape.seek(st.pos),
     'rec.start': (st) => startRecording(st),
-    'rec.stop': () => {
-      // Taping the radio ends: the radio goes back to a plain element now, in the tap, so the phone lets it play.
-      if (job && job.line) radio.plain();
-      stopRecording();
-    },
+    'rec.stop': () => stopRecording(),
   };
 
   return function carryOut(steps) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MP3_KBPS, FORMATS, formatFor, isWav, fileName, sizeText, progressText } from '../../logic/export.js';
+import { MP3_KBPS, FORMATS, formatFor, isWav, isMp3, fileName, sizeText, progressText } from '../../logic/export.js';
 
 describe('formats', () => {
   it('MP3 first (the default) at 192 kbps, then WAV', () => {
@@ -16,6 +16,19 @@ describe('formats', () => {
     expect(formatFor('mp3').id).toBe('mp3');
     expect(formatFor('ogg').id).toBe('mp3');
     expect(formatFor().id).toBe('mp3');
+  });
+});
+
+describe('isMp3', () => {
+  it('a radio tape of an MP3 station already is one', () => {
+    expect(isMp3({ mime: 'audio/mpeg' })).toBe(true);
+    expect(isMp3({ blob: { type: 'audio/mp3' } })).toBe(true);
+  });
+  it('other tapes are not', () => {
+    expect(isMp3({ mime: 'audio/mp4' })).toBe(false);
+    expect(isMp3({ mime: 'audio/aac' })).toBe(false);
+    expect(isMp3({ mime: 'audio/wav' })).toBe(false);
+    expect(isMp3(null)).toBe(false);
   });
 });
 

@@ -41,11 +41,15 @@ function recordSteps(prev, next) {
   return [];
 }
 
+const isStop = (st) => /\.(stop|pause)$/.test(st.do);
+
 export function soundPlan(prev, next, actionType = '') {
   if (prev === next) return [];
-  // Stop what's ending before starting anything new, so two sounds never overlap.
-  const steps = [...recordSteps(prev, next), ...radioSteps(prev, next), ...tapeSteps(prev, next, actionType)];
-  const stops = steps.filter((st) => /\.(stop|pause)$/.test(st.do));
-  const rest = steps.filter((st) => !/\.(stop|pause)$/.test(st.do));
-  return [...stops, ...rest];
+  const rec = recordSteps(prev, next);
+  const radio = radioSteps(prev, next);
+  const tape = tapeSteps(prev, next, actionType);
+  // Stop what's ending before starting anything new, so two sounds never overlap: the recording first, so a radio
+  // tape is cut before the station goes. Then the radio starts before the recorder, so Record pressed with the
+  // radio off tapes it from its first sound.
+  return [...[...rec, ...radio, ...tape].filter(isStop), ...[...radio, ...rec, ...tape].filter((st) => !isStop(st))];
 }

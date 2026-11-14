@@ -13,10 +13,16 @@ export function formatFor(id) {
   return FORMATS.find((f) => f.id === id) || FORMATS[0];
 }
 
+const typeOf = (tape) => (tape && (tape.mime || (tape.blob && tape.blob.type))) || '';
+
 // Is the tape already a WAV file (a mixtape)? Then WAV shares it as it is.
 export function isWav(tape) {
-  const type = (tape && (tape.mime || (tape.blob && tape.blob.type))) || '';
-  return /wav/i.test(type);
+  return /wav/i.test(typeOf(tape));
+}
+
+// Is the tape already an MP3 file (a radio tape of an MP3 station: the broadcast itself)? Then MP3 shares it as it is.
+export function isMp3(tape) {
+  return /mpeg|mp3/i.test(typeOf(tape));
 }
 
 // The file's name: the tape's title, without the characters phones and computers don't allow in names.

@@ -1,7 +1,9 @@
 // Recorders. Each start function resolves to a session with stop(), which resolves to { blob, notes }: the recording,
-// and what the recorder saw (for the tape check's log line, audio/sound-check.js). onEnd runs if the sound stops by
-// itself (the mic is taken away, the station drops out).
+// and what the recorder saw (for the tape check's log line, audio/sound-check.js). The mic's onEnd runs if the sound
+// stops by itself (the mic is taken away); a station that drops out stops the deck itself (deck 'lost').
 import { pickRecordType, RECORD_BITRATE, MIC_SETTINGS } from '../logic/recording.js';
+import { lengthOf, soundRuns } from '../logic/stream-frames.js';
+import { radioTape } from './radio-tape.js';
 
 const notSupported = () => Object.assign(new Error('no recorder'), { name: 'NotSupportedError' });
 
@@ -18,9 +20,8 @@ function trackNotes(track) {
   return notes;
 }
 
-// Records a sound stream with MediaRecorder. release() runs once it has stopped (lets go of the mic or radio).
-// more() adds the source's own notes (the radio's).
-function recordStream(stream, { onEnd, release, more = () => ({}) }) {
+// Records a sound stream with MediaRecorder. release() runs once it has stopped (lets go of the mic).
+function recordStream(stream, { onEnd, release }) {
   const mimeType = pickRecordType((t) => MediaRecorder.isTypeSupported(t));
   const options = { audioBitsPerSecond: RECORD_BITRATE };
   if (mimeType) options.mimeType = mimeType;
@@ -46,7 +47,7 @@ function recordStream(stream, { onEnd, release, more = () => ({}) }) {
     stop() {
       stopping = true;
       // Noted before letting go, while the track is still live.
-      const notes = { recorder: recorder.mimeType || mimeType || '', mutes, ...trackNotes(track), ...more() };
+      const notes = { recorder: recorder.mimeType || mimeType || '', mutes, ...trackNotes(track) };
       return new Promise((resolve) => {
         const finish = () => {
           release();
@@ -70,15 +71,20 @@ export async function startMic({ onEnd }) {
   return recordStream(stream, { onEnd, release: () => stream.getTracks().forEach((t) => t.stop()) });
 }
 
-// The radio: records what the app is playing, from now. Throws SecurityError when the station doesn't share it.
-export async function startLine({ radio, onEnd }) {
-  // The station's refusal comes first: it holds in every browser.
+// The radio: the tape is cut from the very sound the app plays, from now (audio/radio.js, radio-feed.js). No recorder:
+// the frames are the broadcast itself. Starts once the station's sound is arriving (Record pressed with the radio off
+// waits for it), and throws SecurityError when the station doesn't let the app read its stream.
+export async function startLine({ radio }) {
   const tap = radio.tap();
-  if (typeof MediaRecorder === 'undefined') {
-    tap.release();
-    throw notSupported();
-  }
-  return recordStream(tap.stream, { onEnd, release: tap.release, more: tap.notes });
+  await tap.ready;
+  return {
+    async stop() {
+      const frames = tap.stop();
+      const blob = await radioTape(frames);
+      const heardSeconds = Number(lengthOf(frames).toFixed(2));
+      return { blob, notes: { ...tap.notes(), frames: frames.length, runs: soundRuns(frames).length, heardSeconds } };
+    },
+  };
 }
 
 // How long a recording really is, read from the file. Radio tapes run longer than the time spent taping,

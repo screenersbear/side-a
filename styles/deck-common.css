@@ -39,6 +39,10 @@
 .deck .status { white-space: normal; }
 /* The song line keeps its room when a station sends no song, so nothing jumps when one arrives. */
 .deck .line { min-height: 1.2em; min-height: 1lh; }
+/* A song title too long for its line scrolls like a ticker (components/ticker.js). */
+.deck .line.ticking { text-overflow: clip; }
+.deck .tick-in { display: inline-block; white-space: pre; will-change: transform; }
+.deck .tick-gap { padding: 0 0.9em; }
 .deck .big-row { display: flex; align-items: baseline; gap: 6px; }
 .deck .big { font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .deck .unit { font-size: 12px; font-weight: 500; }

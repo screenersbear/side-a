@@ -4,6 +4,7 @@ import { el, setText } from './el.js';
 import { createCassette } from './cassette.js';
 import { createTransport, createSwitch, createPresets } from './controls.js';
 import { createTuner } from './tuner.js';
+import { createTicker } from './ticker.js';
 import { PRESET_FREQS } from '../logic/stations.js';
 
 // look: an entry of logic/looks.js. keys: options for the transport keys (order, class, Record symbol).
@@ -28,6 +29,8 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     edge: el('div', { class: 'edge', 'aria-hidden': 'true' }),
   };
 
+  const ticker = createTicker(parts.line);
+
   function update(v) {
     parts.cassette.update({ title: v.tapeTitle, len: v.tapeLength, counter: v.counter, rec: v.recording, reelOn: v.reelOn });
     parts.transport.update(v);
@@ -35,7 +38,7 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     parts.status.classList.toggle('blink', v.recording);
     setText(parts.big, v.big);
     setText(parts.unit, v.unit);
-    setText(parts.line, v.line);
+    ticker.set(v.line);
     parts.source.node.hidden = !v.isTape;
     parts.source.update(v.isMic ? 'mic' : 'line');
     parts.tuner.update(v);

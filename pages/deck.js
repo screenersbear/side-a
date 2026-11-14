@@ -10,12 +10,16 @@ import { PRESET_FREQS } from '../logic/stations.js';
 export function createDeckPage(dispatch) {
   const send = (type, extra) => dispatch({ type, ...extra });
 
-  const cassette = createCassette({ shell: '#C9D0CC', label: '#FAFAF7', band: '#E8322B', win: '#29323A', pack: '#7C868C', hub: '#FAFAF7', ink: '#29323A' });
+  const cassette = createCassette(
+    { shell: '#C9D0CC', label: '#FAFAF7', band: '#E8322B', win: '#29323A', pack: '#7C868C', hub: '#FAFAF7', ink: '#29323A' },
+    { printed: true },
+  );
   const bay = el(
     'div',
     { class: 'bay' },
     cassette.node,
     el('div', { class: 'cover', 'aria-hidden': 'true' }),
+    el('div', { class: 'rim', 'aria-hidden': 'true' }),
     createLevelBars(24),
     el('div', { class: 'scale', 'aria-hidden': 'true' }, el('span', {}, '0'), el('span', {}, '50'), el('span', {}, '100')),
   );
@@ -44,9 +48,12 @@ export function createDeckPage(dispatch) {
   const node = el(
     'section',
     { class: 'screen deck pocket', 'aria-label': 'Deck' },
+    el('div', { class: 'grain', 'aria-hidden': 'true' }),
+    el('div', { class: 'stripe-off', 'aria-hidden': 'true' }),
     el('div', { class: 'stripe', 'aria-hidden': 'true' }),
     el('h1', { class: 'visually-hidden' }, 'SIDE A'),
     el('div', { class: 'deck-row' }, bay, panel),
+    el('div', { class: 'edge', 'aria-hidden': 'true' }),
   );
 
   function update(v) {

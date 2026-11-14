@@ -29,3 +29,10 @@
 .c-rec .c-rec-dot { position: static; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--red); }
 .c-side { left: 8%; top: 37%; font-size: 13cqh; font-stretch: 125%; }
 .c-len { right: 7.5%; top: 40%; font-size: 7cqh; font-stretch: 62%; }
+
+/* Printed finish: grain over the shell, the INDEX line and the tape type in the band. */
+.c-grain { mix-blend-mode: multiply; }
+.cassette .c-index-line { left: 7%; right: 36%; top: 20.5%; height: 1px; background: var(--label-ink, var(--ink)); opacity: .6; }
+.cassette .c-index, .cassette .c-band-text { font-size: max(7px, 3cqh); font-weight: 700; }
+.cassette .c-index { left: 7%; top: 23%; letter-spacing: .08em; }
+.cassette .c-band-text { left: 0; right: 0; top: 65.52%; transform: translateY(-50%); text-align: center; letter-spacing: .1em; color: var(--ink); }

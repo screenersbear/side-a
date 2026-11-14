@@ -132,11 +132,11 @@ test('records a voice note, then plays it from the shelf', async ({ page, browse
   await expect(line(page)).not.toHaveText(/Saving|Blank/);
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();
-  await expect(page.getByRole('heading', { name: 'TAPE SHELF' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tape shelf' })).toBeVisible();
   const tape = page.getByRole('button', { name: /^Play .*Voice note/ });
   await expect(tape).toHaveCount(1);
   await tape.click();
-  await expect(page.getByRole('heading', { name: 'TAPE SHELF' })).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Tape shelf' })).toBeHidden();
   await expect(status(page)).toHaveText(/Tape, (playing|stopped)/);
 });
 

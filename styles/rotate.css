@@ -18,12 +18,13 @@
   position: absolute; left: -60px; top: 210px; width: 624px; height: 144px;
   transform: rotate(28deg); transform-origin: left top; display: flex; flex-direction: column;
 }
-/* Three wide stripes. Colourway still open (2026-11-14): cobalt, salmon, mango is the canvas default.
-   The other two on the canvas: teal #14BFA0, crimson #A1062A, paper; orchid #CC2E8A, chartreuse #E2E600, cobalt. */
+/* Three wide stripes in "old Hawks" royal blue, lime, white (1970-72 Atlanta Hawks), the canvas default.
+   Colourway still open (2026-11-14). Others on the canvas: old Hawks red #E8322B, gold #FFC72C, white;
+   cobalt, salmon #FFAFAB, mango; teal #14BFA0, crimson #A1062A, paper; orchid #CC2E8A, chartreuse #E2E600, cobalt. */
 .rotate-stripes i { display: block; height: 48px; }
 .rotate-stripes i:nth-child(1) { background: var(--cobalt); }
-.rotate-stripes i:nth-child(2) { background: var(--salmon); }
-.rotate-stripes i:nth-child(3) { background: var(--mango); }
+.rotate-stripes i:nth-child(2) { background: var(--lime); }
+.rotate-stripes i:nth-child(3) { background: var(--paper); }
 
 .rotate-phone { position: relative; width: 84px; height: 140px; margin-top: auto; display: flex; }
 @keyframes turn { 0%, 20% { transform: rotate(0deg); } 45%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }

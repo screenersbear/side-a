@@ -55,8 +55,8 @@ export function createShelfPage({ onPick, onBlank }) {
     el(
       'header',
       { class: 'shelf-top' },
-      el('a', { class: 'back', href: '#/' }, icon('back'), 'Deck'),
-      el('h1', {}, 'TAPE SHELF'),
+      el('a', { class: 'back control', href: '#/' }, icon('back'), 'Deck'),
+      el('h1', { class: 'screen-title' }, 'Tape shelf'),
       el('div', { class: 'grow' }),
       chips.node,
     ),

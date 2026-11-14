@@ -14,14 +14,12 @@
 .shelf a:focus-visible, .shelf button:focus-visible { outline: 3px solid var(--mango); outline-offset: 3px; }
 
 .shelf-top { display: flex; align-items: center; gap: 14px; padding: 14px var(--pad-r) 0 var(--pad-l); flex: 0 0 auto; }
-.back { display: flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; text-decoration: none; font-size: 12px; font-weight: 500; }
+.back { display: flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; text-decoration: none; }
 .back .icon { display: flex; }
-.shelf h1 { margin: 0; font-size: 30px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
 .grow { flex: 1 1 auto; }
 
 .chip {
-  border: 0; border-radius: 0; margin: 0; height: 44px; padding: 0 12px; background: transparent; cursor: pointer;
-  font-size: 12px; font-weight: 500;
+  border: 0; border-radius: 0; margin: 0; height: 44px; padding: 0 10px; background: transparent; cursor: pointer;
   text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px;
 }
 .shelf .chip.on { background: var(--paper); color: var(--ink); text-decoration: none; }

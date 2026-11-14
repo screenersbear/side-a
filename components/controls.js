@@ -28,7 +28,7 @@ export function createTransport(onPress) {
 // A row of underlined words where one is picked. options: [{ id, text }]. onPick(id).
 export function createSwitch(groupLabel, options, onPick, cls = 'seg') {
   const buttons = options.map((o) =>
-    el('button', { class: cls, type: 'button', 'aria-pressed': 'false', 'data-id': o.id, onclick: () => onPick(o.id) }, o.text),
+    el('button', { class: `${cls} control`, type: 'button', 'aria-pressed': 'false', 'data-id': o.id, onclick: () => onPick(o.id) }, o.text),
   );
   const node = el('div', { class: 'switch', role: 'group', 'aria-label': groupLabel }, buttons);
 

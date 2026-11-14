@@ -27,6 +27,7 @@
   --green: #3DDC4A;
   --cobalt: #0A4FD6;
   --salmon: #FFAFAB;
+  --lime: #9BD32C;
   --shell: #C9D0CC;
   --tape-grey: #7C868C;
   color-scheme: light;
@@ -60,6 +61,13 @@ button { -webkit-user-select: none; user-select: none; touch-action: manipulatio
 .screen { position: fixed; inset: 0; overflow: hidden; }
 
 .noscript { padding: 24px; font-size: 16px; }
+
+/* Type roles (DESIGN.md). Control: every switch, filter, back link and button word. Screen title: one per screen. */
+.control { font-size: 12px; font-weight: 800; font-stretch: 115%; letter-spacing: .06em; text-transform: uppercase; }
+.screen-title {
+  margin: 0; font-size: 30px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1;
+  text-transform: uppercase; white-space: nowrap;
+}
 
 /* REC and the "Recording" status blink once a second. */
 @keyframes blink { 50% { opacity: 0; } }

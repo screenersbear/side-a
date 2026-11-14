@@ -62,12 +62,6 @@ export function presetStation(key, presets = PRESET_FREQS) {
   return stationAt(presets[key]);
 }
 
-// Which preset key a station is on, 1 to 4, or 0 when it isn't a preset (the first key, if it's on two).
-export function presetNumber(index, presets = PRESET_FREQS) {
-  if (!isStation(index)) return 0;
-  return presets.findIndex((f) => stationAt(f) === index) + 1;
-}
-
 // Can this station be taped? Some streams don't allow recording.
 export function canTape(station) {
   return Boolean(station) && station.tape !== false;

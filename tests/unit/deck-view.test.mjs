@@ -18,18 +18,22 @@ describe('deckView on the radio', () => {
     const v = deckView(fresh({ station: KEXP, playing: true }));
     expect(v).toMatchObject({
       isRadio: true, isTape: false, big: '90.3', unit: 'MHz', counter: '',
-      status: 'KEXP, preset 3', line: '', dialLabel: 'Tuned to 90.3 FM',
+      status: 'KEXP, Seattle WA', line: '', dialLabel: 'Tuned to 90.3 FM',
       rewLabel: 'Previous station', ffLabel: 'Next station',
     });
     expect(v.needle).toBeCloseTo(11.5, 5);
   });
   it('says when the radio is off or tuning in', () => {
-    expect(deckView(fresh()).status).toBe('WBGO Jazz, preset 1, off');
+    expect(deckView(fresh()).status).toBe('WBGO Jazz, Newark NJ, off');
     expect(deckView(fresh({ playing: true, tuning: true })).status).toBe('Tuning in');
   });
-  it('a station that is not a preset just gives its name', () => {
-    expect(deckView(fresh({ station: WFMU, playing: true }))).toMatchObject({ status: 'WFMU', big: '91.1' });
-    expect(deckView(fresh({ station: WFMU })).status).toBe('WFMU, off');
+  it('a station that is not a preset says where it is too', () => {
+    expect(deckView(fresh({ station: WFMU, playing: true }))).toMatchObject({ status: 'WFMU, Jersey City NJ', big: '91.1' });
+    expect(deckView(fresh({ station: WFMU })).status).toBe('WFMU, Jersey City NJ, off');
+  });
+  it('a station with no town gives just its name', () => {
+    expect(deckView(fresh({ station: stationAt(97.3), playing: true })).status).toBe('The Rock');
+    expect(deckView(fresh({ station: stationAt(97.3) })).status).toBe('The Rock, off');
   });
   it('the second line is the song the station names, while it plays', () => {
     const song = { artist: 'The Paper Lanterns', title: 'Night Swim' };
@@ -49,13 +53,13 @@ describe('deckView on the radio', () => {
     expect(v.presets[0].label).toBe('Preset 1: 88.3 WBGO Jazz');
     expect(v.presets[3].label).toBe('Preset 4: 98.9 KUTX');
     expect(deckView(fresh({ station: WFMU })).presets.some((p) => p.on)).toBe(false);
-    expect(deckView(fresh({ station: KUTX })).status).toBe('KUTX, preset 4, off');
+    expect(deckView(fresh({ station: KUTX })).status).toBe('KUTX, Austin TX, off');
     expect(deckView(fresh({ station: WBGO })).presets[0].on).toBe(true);
   });
   it('shows the presets saved on the phone', () => {
     const v = deckView(fresh({ station: WFMU, playing: true, presets: [88.3, 91.1, 90.3, 98.9] }));
     expect(v.presets[1]).toEqual({ n: 2, on: true, label: 'Preset 2: 91.1 WFMU' });
-    expect(v.status).toBe('WFMU, preset 2');
+    expect(v.status).toBe('WFMU, Jersey City NJ');
   });
   it('keys: Play down while playing, Stop down while stopped', () => {
     expect(deckView(fresh({ playing: true }))).toMatchObject({ playOn: true, stopped: false, recording: false, sounding: true });

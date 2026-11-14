@@ -99,20 +99,20 @@ test.beforeEach(async ({}, info) => {
 
 test('the radio plays a preset and changes station', async ({ page }) => {
   await openDeck(page);
-  await expect(status(page)).toHaveText('WBGO Jazz, preset 1, off');
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ, off');
   await page.getByRole('button', { name: /^Preset 2:/ }).click();
-  await expect(status(page)).toHaveText('The Current, preset 2');
+  await expect(status(page)).toHaveText('The Current, Minneapolis MN');
   // The Current sends no song titles, so the song line stays empty.
   await expect(line(page)).toHaveText('');
   await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-pressed', 'true');
   await key(page, 'Next station').click();
   const next = STATIONS[stationAt(89.3) + 1];
   await expect(page.locator('.big')).toHaveText(next.freq.toFixed(1));
-  await expect(status(page)).toHaveText(next.name);
+  await expect(status(page)).toHaveText(next.place ? `${next.name}, ${next.place}` : next.name);
   await key(page, 'Previous station').click();
   await expect(page.locator('.big')).toHaveText('89.3');
   await key(page, 'Stop').click();
-  await expect(status(page)).toHaveText('The Current, preset 2, off');
+  await expect(status(page)).toHaveText('The Current, Minneapolis MN, off');
 });
 
 test('Next seeks up the dial to a station that does not allow recording, and Record says so', async ({ page }) => {
@@ -120,7 +120,7 @@ test('Next seeks up the dial to a station that does not allow recording, and Rec
   await key(page, 'Play').click();
   for (let i = stationAt(88.3); i < stationAt(91.1); i++) await key(page, 'Next station').click();
   await expect(page.locator('.big')).toHaveText('91.1');
-  await expect(status(page)).toHaveText('WFMU');
+  await expect(status(page)).toHaveText('WFMU, Jersey City NJ');
   await key(page, 'Record').click();
   await expect(status(page)).toHaveText("Recording isn't allowed on this station.");
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
@@ -144,7 +144,7 @@ test('holding a preset key saves the station there, like a car radio, and the ph
   await expect(two).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.big')).toHaveText('91.1');
   // The message goes after a moment.
-  await expect(status(page)).toHaveText('WFMU, preset 2');
+  await expect(status(page)).toHaveText('WFMU, Jersey City NJ');
   // A quick tap still tunes.
   await page.getByRole('button', { name: /^Preset 1:/ }).click();
   await expect(page.locator('.big')).toHaveText('88.3');
@@ -177,7 +177,7 @@ test('a preset key held with Enter saves too, and a quick Enter tunes', async ({
 test('a station that blocks taping when Record is pressed shows the same message and keeps playing', async ({ page }) => {
   await openDeck(page, { blocked: STATIONS[stationAt(90.3)].url });
   await page.getByRole('button', { name: /^Preset 3:/ }).click();
-  await expect(status(page)).toHaveText('KEXP, preset 3');
+  await expect(status(page)).toHaveText('KEXP, Seattle WA');
   await key(page, 'Record').click();
   await expect(status(page)).toHaveText("Recording isn't allowed on this station.");
   await expect(page.locator('.big')).toHaveText('90.3');
@@ -219,12 +219,12 @@ test('tapes the radio and files it under Radio', async ({ page }) => {
   // Record again stops it, the same as Stop: the tape is saved and the radio plays on, like a boombox.
   await key(page, 'Record').click();
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
-  await expect(status(page)).toHaveText('WBGO Jazz, preset 1');
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
   await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'RADIO' })).toHaveAttribute('aria-pressed', 'true');
   // Stop again turns the radio off. The tape waits in the deck.
   await key(page, 'Stop').click();
-  await expect(status(page)).toHaveText('WBGO Jazz, preset 1, off');
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ, off');
   await page.getByRole('button', { name: 'TAPE' }).click();
   await expect(line(page)).toHaveText(/^88\.3 WBGO Jazz, /);
 
@@ -246,7 +246,7 @@ test('taping a station that names its songs puts the song on the tape', async ({
   test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
   await page.getByRole('button', { name: /^Preset 3:/ }).click();
   // The deck shows the song while the station plays, in every look.
-  await expect(status(page)).toHaveText('KEXP, preset 3');
+  await expect(status(page)).toHaveText('KEXP, Seattle WA');
   await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
   await pickLook(page, 'Boombox');
   await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
@@ -256,7 +256,7 @@ test('taping a station that names its songs puts the song on the tape', async ({
   await page.waitForTimeout(1200);
   await key(page, 'Stop').click();
   // The radio plays on, still naming the song.
-  await expect(status(page)).toHaveText('KEXP, preset 3');
+  await expect(status(page)).toHaveText('KEXP, Seattle WA');
   await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();
@@ -315,9 +315,9 @@ test('Settings changes the look, and the deck keeps it after a reload', async ({
 test('changing the look keeps the radio playing', async ({ page }) => {
   await openDeck(page);
   await page.getByRole('button', { name: /^Preset 2:/ }).click();
-  await expect(status(page)).toHaveText('The Current, preset 2');
+  await expect(status(page)).toHaveText('The Current, Minneapolis MN');
   await pickLook(page, 'Boombox');
-  await expect(status(page)).toHaveText('The Current, preset 2');
+  await expect(status(page)).toHaveText('The Current, Minneapolis MN');
   await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
 });
@@ -335,7 +335,7 @@ for (const look of ['Deck', 'Sport', 'Boombox']) {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.getByRole('button', { name: /^Preset 2:/ }).click();
-    await expect(status(page)).toHaveText('The Current, preset 2');
+    await expect(status(page)).toHaveText('The Current, Minneapolis MN');
     await expect(line(page)).toHaveText('');
     await expect(movingPart(page)).toHaveCount(1);
     await key(page, 'Stop').click();

@@ -67,7 +67,7 @@ export const STATION_LIST = [
   { freq: 104.3, name: "B 104.3", place: "Bonne Terre MO", url: "https://ice24.securenetsystems.net/KDBB" },
   { freq: 104.5, name: "WXRR Classic Rock", place: "MS", url: "https://ice64.securenetsystems.net/WXRR" },
   { freq: 104.9, name: "FunAsiA", place: "Pilot Point TX", url: "https://funasia.streamguys1.com/live-1" },
-  { freq: 105.1, name: "Q105.1 Rocks", place: "Breckenridge MNN", url: "https://ice3.securenetsystems.net/KQWB" },
+  { freq: 105.1, name: "Q105.1 Rocks", place: "Breckenridge MN", url: "https://ice3.securenetsystems.net/KQWB" },
   { freq: 105.3, name: "KZNN", place: "Rolla MO", url: "https://ice5.securenetsystems.net/KZNNFM" },
   { freq: 105.5, name: "Latin 105.5", place: "Addis LA", url: "https://ice64.securenetsystems.net/KDDK" },
   { freq: 105.7, name: "La Mega", place: "Camden NJ", url: "https://ice41.securenetsystems.net/WEMG" },

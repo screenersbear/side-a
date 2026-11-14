@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   STATIONS, PRESET_FREQS, DIAL_LOW, DIAL_HIGH, DIAL_TICKS,
-  dialPercent, stepStation, freqText, isStation, stationAt, presetStation, presetNumber, cleanPresets, canTape,
+  dialPercent, stepStation, freqText, isStation, stationAt, presetStation, cleanPresets, canTape,
 } from '../../logic/stations.js';
 import { STATION_LIST } from '../../data/stations.js';
 
@@ -55,23 +55,10 @@ describe('presets', () => {
     expect(presetStation(1.5)).toBe(-1);
     expect(presetStation(undefined)).toBe(-1);
   });
-  it('presetNumber says which key a station is on', () => {
-    expect(presetNumber(presetStation(0))).toBe(1);
-    expect(presetNumber(presetStation(3))).toBe(4);
-  });
-  it('presetNumber is 0 for other stations and nonsense', () => {
-    expect(presetNumber(stationAt(91.1))).toBe(0);
-    expect(presetNumber(-1)).toBe(0);
-    expect(presetNumber(999)).toBe(0);
-  });
   it('work from saved presets too', () => {
     const mine = [88.3, 91.1, 90.3, 98.9];
     expect(presetStation(1, mine)).toBe(stationAt(91.1));
     expect(presetStation(4, mine)).toBe(-1);
-    expect(presetNumber(stationAt(91.1), mine)).toBe(2);
-    expect(presetNumber(stationAt(89.3), mine)).toBe(0);
-    // A station on two keys is on the first.
-    expect(presetNumber(stationAt(90.3), [88.3, 90.3, 90.3, 98.9])).toBe(2);
   });
 });
 

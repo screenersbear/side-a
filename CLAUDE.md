@@ -28,7 +28,8 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   (`components/deck-parts.js`), each look in `pages/looks/` only arranges them and adds its moving part (Pocket level
   bars, Deck meters, Sport EQ, Boombox speaker; all CSS, off with reduce motion). `shelf.js`, `settings.js`.
   Changing the look rebuilds the deck screen; the deck's state and the sound carry on.
-  On the radio every look shows "<station>, preset N" and, when the station names it, "<song> · <artist>"
+  On the radio every look shows "<station>, <place>" ("KEXP, Seattle WA"; ", off" when the radio is off; Starky,
+  2026-11-14: where it is, not the preset number, which the lit key already shows) and, when the station names it, "<song> · <artist>"
   (Boombox: under the speaker, with a note). Record pressed again while recording stops it, the same as Stop.
   Stopping a radio recording saves the tape and the radio plays on, back in radio mode (Starky, 2026-11-14:
   like a boombox); Stop again turns it off. Mic recordings stop everything, as before.

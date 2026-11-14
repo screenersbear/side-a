@@ -1,5 +1,5 @@
 // Everything the deck screen shows, worked out from the deck's state: words, numbers and which keys are down.
-import { STATIONS, freqText, dialPercent, presetNumber, stationAt } from './stations.js';
+import { STATIONS, freqText, dialPercent, stationAt } from './stations.js';
 import { mmss } from './tape-names.js';
 import { songAt, songLine } from './songs.js';
 
@@ -10,9 +10,9 @@ function statusText(s, isTape) {
     return s.playing ? 'Tape, playing' : 'Tape, stopped';
   }
   if (s.tuning) return 'Tuning in';
-  const preset = presetNumber(s.station, s.presets);
-  const name = STATIONS[s.station].name;
-  const where = preset ? `${name}, preset ${preset}` : name;
+  // The station and where it is ("KEXP, Seattle WA"); the lit preset key already shows which preset it is.
+  const station = STATIONS[s.station];
+  const where = station.place ? `${station.name}, ${station.place}` : station.name;
   return s.playing ? where : `${where}, off`;
 }
 

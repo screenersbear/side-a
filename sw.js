@@ -8,7 +8,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(FILES))
+      // Fresh from the site, not the browser's own cache: GitHub Pages lets browsers keep files for 10 minutes,
+      // so a copy made just after a release could otherwise keep some of the old files under the new name.
+      .then((cache) => cache.addAll(FILES.map((file) => new Request(file, { cache: 'reload' }))))
       .then(() => self.skipWaiting()),
   );
 });

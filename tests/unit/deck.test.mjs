@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { startState, deckReducer, radioOn, tapeOn, SKIP_SECONDS, SHORT_NOTICE_MS, savedText } from '../../logic/deck.js';
+import { startState, deckReducer, radioOn, tapeOn, SKIP_SECONDS, SHORT_NOTICE_MS, savedText, LEFT_APP } from '../../logic/deck.js';
 import { STATIONS, PRESET_FREQS, stationAt } from '../../logic/stations.js';
 import { NOT_ALLOWED } from '../../logic/recording.js';
 
@@ -504,10 +504,63 @@ describe('Heard (the song a station names)', () => {
   });
 });
 
+describe('Hidden (the phone locked or another app came up)', () => {
+  it('stops a mic recording, says so, and the tape is saved', () => {
+    const s = run(tapeIn(), { type: 'rec', now: NOW }, 'hidden');
+    expect(s).toMatchObject({ mode: 'tape', recording: false, playing: false, notice: LEFT_APP });
+    expect(s.draft).not.toBeNull();
+    expect(LEFT_APP).toBe('Recording stopped when you left the app. The tape is saved.');
+  });
+  it('stops taping the radio; the radio plays on, as with Stop', () => {
+    const s = run(radioPlaying(), { type: 'rec', now: NOW }, 'hidden');
+    expect(s).toMatchObject({ mode: 'radio', recording: false, playing: true, notice: LEFT_APP });
+  });
+  it('changes nothing when nothing is recording, playing or not', () => {
+    for (const s of [fresh(), radioPlaying(), tapeIn({ playing: true })]) expect(deckReducer(s, { type: 'hidden' })).toBe(s);
+  });
+});
+
+describe('Eject (a tape deleted from the shelf)', () => {
+  const eject = (id) => ({ type: 'eject', id });
+  it('empties the deck when it held that tape, and stops it playing', () => {
+    expect(run(tapeIn({ playing: true, pos: 12 }), eject(7))).toMatchObject({ mode: 'tape', tape: null, pos: 0, playing: false });
+    expect(run(tapeIn({ pos: 12 }), eject(7))).toMatchObject({ tape: null, pos: 0, playing: false });
+  });
+  it('leaves the radio playing when the tape was only waiting in the deck', () => {
+    const s = { ...radioPlaying(), tape: TAPE, pos: 5 };
+    expect(deckReducer(s, eject(7))).toMatchObject({ mode: 'radio', playing: true, tape: null, pos: 0 });
+  });
+  it('a recording carries on', () => {
+    const s = run(tapeIn(), { type: 'rec', now: NOW });
+    expect(deckReducer(s, eject(7))).toMatchObject({ recording: true, playing: true, tape: null });
+  });
+  it('another tape, or an empty deck, changes nothing', () => {
+    const s = tapeIn({ playing: true });
+    expect(deckReducer(s, eject(8))).toBe(s);
+    expect(deckReducer(fresh(), eject(7))).toEqual(fresh());
+  });
+});
+
+describe('Retitle (a tape renamed on the shelf)', () => {
+  it('the tape in the deck takes the new name', () => {
+    const s = deckReducer(tapeIn({ pos: 3 }), { type: 'retitle', tape: { ...TAPE, title: 'Late Night Drive', named: true } });
+    expect(s.tape).toEqual({ ...TAPE, title: 'Late Night Drive', named: true });
+    expect(s.tape.blob).toBe(blob);
+    expect(s.pos).toBe(3);
+  });
+  it('another tape, no tape, or an empty deck changes nothing', () => {
+    const s = tapeIn();
+    expect(deckReducer(s, { type: 'retitle', tape: { id: 8, title: 'X' } })).toBe(s);
+    expect(deckReducer(s, { type: 'retitle' })).toBe(s);
+    const empty = fresh();
+    expect(deckReducer(empty, { type: 'retitle', tape: { id: 7, title: 'X' } })).toBe(empty);
+  });
+});
+
 describe('deckReducer', () => {
   it('ignores actions it does not know', () => {
     const s = fresh();
-    expect(deckReducer(s, { type: 'eject' })).toBe(s);
+    expect(deckReducer(s, { type: 'nonsense' })).toBe(s);
     expect(deckReducer(s)).toBe(s);
   });
 });

@@ -41,3 +41,11 @@ export function tapeTitle(kind, station, when) {
   const time = clockTime(when);
   return date ? `${date}, ${time}` : 'Voice note';
 }
+
+// The longest name a tape can be given.
+export const TITLE_MAX = 60;
+
+// A name typed for a tape, tidied: spaces collapsed and trimmed, at most TITLE_MAX characters. '' when nothing's left.
+export function cleanTitle(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX).trim();
+}

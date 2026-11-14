@@ -191,6 +191,26 @@ function sameSong(a, b) {
   return a === b || Boolean(a && b && a.artist === b.artist && a.title === b.title);
 }
 
+// The phone locked, or another app came up, while recording: a web app can't record in the background, so the
+// recording stops and what was taped is saved (taping the radio, the radio plays on, as with Stop).
+export const LEFT_APP = 'Recording stopped when you left the app. The tape is saved.';
+
+function leftApp(s) {
+  return s.recording ? { ...stop(s), notice: LEFT_APP } : s;
+}
+
+// A tape was deleted from the shelf. If it's the one in the deck, the deck is left empty (and stops if it was playing it).
+function eject(s, id) {
+  if (!s.tape || s.tape.id !== id) return s;
+  return { ...s, tape: null, pos: 0, playing: tapeOn(s) ? false : s.playing };
+}
+
+// A tape was renamed on the shelf: the one in the deck takes the new name too.
+function retitle(s, tape) {
+  if (!tape || !s.tape || s.tape.id !== tape.id) return s;
+  return { ...s, tape: { ...s.tape, title: tape.title, named: true } };
+}
+
 export function deckReducer(s, action = {}) {
   switch (action.type) {
     case 'heard': return heard(s, action.station, action.text);
@@ -202,6 +222,9 @@ export function deckReducer(s, action = {}) {
     case 'preset': return pickPreset(s, action.key);
     case 'savePreset': return savePreset(s, action.key);
     case 'calm': return calm(s, action.text);
+    case 'hidden': return leftApp(s);
+    case 'eject': return eject(s, action.id);
+    case 'retitle': return retitle(s, action.tape);
     case 'toRadio': return toRadio(s);
     case 'toTape': return toTape(s);
     case 'toMic': return setSource(s, 'mic');

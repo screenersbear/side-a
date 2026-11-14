@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mmss, shortDate, clockTime, tapeTitle } from '../../logic/tape-names.js';
+import { mmss, shortDate, clockTime, tapeTitle, cleanTitle, TITLE_MAX } from '../../logic/tape-names.js';
 
 const at = (y, m, d, h, min) => new Date(y, m - 1, d, h, min).getTime();
 
@@ -70,5 +70,21 @@ describe('tapeTitle', () => {
   });
   it('treats radio with no station as a voice note', () => {
     expect(tapeTitle('radio', null, when)).toBe('Nov 14, 9:41 PM');
+  });
+});
+
+describe('cleanTitle', () => {
+  it('collapses and trims spaces', () => {
+    expect(cleanTitle('  Late   Night\n Drive ')).toBe('Late Night Drive');
+  });
+  it('keeps at most TITLE_MAX characters, with no space left at the end', () => {
+    expect(TITLE_MAX).toBe(60);
+    expect(cleanTitle('a'.repeat(70))).toBe('a'.repeat(60));
+    expect(cleanTitle(`${'a'.repeat(59)} b`)).toBe('a'.repeat(59));
+  });
+  it('nothing typed is an empty name', () => {
+    expect(cleanTitle('   ')).toBe('');
+    expect(cleanTitle(undefined)).toBe('');
+    expect(cleanTitle(42)).toBe('42');
   });
 });

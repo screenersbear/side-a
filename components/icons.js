@@ -17,6 +17,8 @@ export const ICONS = {
   cut: SVG(16, 16, '0 0 16 16', '<circle cx="4" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 10 L12 2 M10.5 10 L4 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'),
   fadeIn: SVG(28, 20, '0 0 28 20', '<path d="M2 18 L26 2 L26 18 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'),
   straight: SVG(28, 20, '0 0 28 20', '<path d="M14 2 V18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+  // The tape menu's close button.
+  close: SVG(16, 16, '0 0 16 16', '<path d="M3 3 L13 13 M13 3 L3 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
   // Boombox: beside the song playing.
   note: SVG(14, 14, '0 0 14 14', '<path d="M5 11 V3 L12 1.5 V9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="11" r="1.8" fill="currentColor"/><circle cx="10.5" cy="9.5" r="1.8" fill="currentColor"/>'),
 };

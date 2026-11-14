@@ -70,13 +70,13 @@ describe('tapeCard for a radio tape with song titles', () => {
   it('puts the station number and first song on the label, the artist and the rest underneath', () => {
     expect(tapeCard(tape)).toEqual({
       title: '101.9 · Night Swim', len: '31:00', meta: 'Radio · The Paper Lanterns, +5 more', label: '#1FC8F0',
-      aria: 'Play 101.9, Night Swim by The Paper Lanterns and 5 more songs: Taped from radio, 31:00',
+      aria: '101.9, Night Swim by The Paper Lanterns and 5 more songs: Taped from radio, 31:00',
     });
   });
   it('one song: no "more"', () => {
     const card = tapeCard({ ...tape, songs: songs.slice(0, 1) });
     expect(card.meta).toBe('Radio · The Paper Lanterns');
-    expect(card.aria).toBe('Play 101.9, Night Swim by The Paper Lanterns: Taped from radio, 31:00');
+    expect(card.aria).toBe('101.9, Night Swim by The Paper Lanterns: Taped from radio, 31:00');
   });
   it('two songs: "1 more song"', () => {
     expect(tapeCard({ ...tape, songs: songs.slice(0, 2) }).aria).toContain('and 1 more song:');
@@ -84,7 +84,7 @@ describe('tapeCard for a radio tape with song titles', () => {
   it('a first song without an artist names the station instead', () => {
     const card = tapeCard({ ...tape, songs: [{ at: 0, artist: '', title: 'Morning Edition' }] });
     expect(card.meta).toBe('Radio · The Long Drive');
-    expect(card.aria).toBe('Play 101.9, Morning Edition: Taped from radio, 31:00');
+    expect(card.aria).toBe('101.9, Morning Edition: Taped from radio, 31:00');
     expect(tapeCard({ ...tape, station: '', songs: [{ at: 0, artist: '', title: 'X' }] }).meta).toBe('Radio · Radio');
   });
   it('without songs, or without a station number, it is an ordinary radio tape', () => {
@@ -101,7 +101,7 @@ describe('tapeCard', () => {
   it('writes the title, kind and length', () => {
     expect(tapeCard(r1)).toEqual({
       title: '90.3 KEXP, Nov 2', len: '31:00', meta: 'Taped from radio, 31:00', label: '#1FC8F0',
-      aria: 'Play 90.3 KEXP, Nov 2: Taped from radio, 31:00',
+      aria: '90.3 KEXP, Nov 2: Taped from radio, 31:00',
     });
   });
   it('uses the voice note look for a voice note', () => {
@@ -127,5 +127,16 @@ describe('emptyText', () => {
   it('falls back to the All line', () => {
     expect(emptyText('video')).toBe('No tapes yet.');
     expect(emptyText()).toBe('No tapes yet.');
+  });
+});
+
+describe('tapeCard for a renamed tape', () => {
+  it('a radio tape given a name of its own is labelled with that name, not its first song', () => {
+    const songs = [{ at: 0, artist: 'The Paper Lanterns', title: 'Night Swim' }];
+    const tape = { kind: 'radio', title: 'Late Night Drive', named: true, freq: 101.9, station: 'The Long Drive', duration: 60, songs };
+    expect(tapeCard(tape)).toEqual({
+      title: 'Late Night Drive', len: '01:00', meta: 'Taped from radio, 01:00', label: '#1FC8F0', aria: 'Late Night Drive: Taped from radio, 01:00',
+    });
+    expect(tapeCard({ ...tape, named: false }).title).toBe('101.9 · Night Swim');
   });
 });

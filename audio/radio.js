@@ -2,14 +2,30 @@
 // Stations that allow taping are asked to share their sound with the app (CORS). Then tap() can hand the
 // recorder exactly what is playing, from the moment Record is pressed. A station that refuses plays anyway,
 // the plain way, and just can't be taped.
+// The sound goes through Web Audio only while it's being taped: a locked phone silences Web Audio but keeps a
+// plain audio element playing. When taping ends, a fresh plain element takes over (plain()).
+
+// After the switch, how long to wait to be sure the phone let the new element play with sound.
+const SETTLE_MS = 1000;
+
 export function createRadio({ onLive, onLost }) {
-  const audio = new Audio();
-  audio.preload = 'none';
   let tuned = false;
   let url = '';
   let shared = false; // asking the station to share its sound
   let attempt = 0;
-  let graph = null; // Web Audio, made the first time the radio is taped; the sound goes through it from then on
+  let graph = null; // Web Audio, while taping: { context, source }
+  let old = null; // while switching back to plain: { audio, graph }, still sounding until the new element plays
+
+  function element() {
+    const a = new Audio();
+    a.preload = 'none';
+    a.addEventListener('playing', () => a === audio && live());
+    // A live stream only errors or ends when the signal drops.
+    a.addEventListener('error', () => a === audio && failed(''));
+    a.addEventListener('ended', () => a === audio && failed(''));
+    return a;
+  }
+  let audio = element();
 
   function start() {
     attempt += 1;
@@ -25,6 +41,8 @@ export function createRadio({ onLive, onLost }) {
 
   function failed(name) {
     if (!tuned) return;
+    // The plain element wouldn't start: the one that was playing carries on.
+    if (old) return keepOld();
     // The station wouldn't share its sound: play it the plain way instead.
     if (shared && name !== 'NotAllowedError') {
       shared = false;
@@ -34,40 +52,115 @@ export function createRadio({ onLive, onLost }) {
     onLost(name);
   }
 
-  audio.addEventListener('playing', () => onLive());
-  // A live stream only errors or ends when the signal drops.
-  audio.addEventListener('error', () => failed(''));
-  audio.addEventListener('ended', () => failed(''));
+  function live() {
+    if (old) switchOver();
+    onLive();
+  }
+
+  // No more sound or download from this element (or its Web Audio).
+  function retire(a, g) {
+    a.pause();
+    a.removeAttribute('src');
+    a.load();
+    if (g) g.context.close().catch(() => {});
+  }
+
+  // Taping is over: a fresh plain element takes over. It starts muted, so the two never sound together; the old one
+  // plays on until the new one does (switchOver). Call it from the tap that stops taping, so phones let it play.
+  function plain() {
+    if (!graph) return;
+    const was = { audio, graph };
+    graph = null;
+    audio = element();
+    if (!tuned) return retire(was.audio, was.graph);
+    old = was;
+    audio.muted = true;
+    start();
+  }
+
+  function switchOver() {
+    const was = old;
+    const fresh = audio;
+    old = null;
+    was.graph.source.disconnect();
+    fresh.muted = false;
+    setTimeout(() => {
+      // A phone that stops it once it has sound (it wants a tap for that): back to the one that was playing.
+      if (fresh === audio && fresh.paused && tuned) {
+        was.graph.source.connect(was.graph.context.destination);
+        audio = was.audio;
+        graph = was.graph;
+        retire(fresh);
+      } else retire(was.audio, was.graph);
+    }, SETTLE_MS);
+  }
+
+  function keepOld() {
+    const was = old;
+    old = null;
+    retire(audio);
+    audio = was.audio;
+    graph = was.graph;
+  }
+
+  // A new station or Stop: nothing left over from taping.
+  function settle() {
+    if (old) retire(old.audio, old.graph);
+    old = null;
+    audio.muted = false;
+    if (!graph) return;
+    const was = { audio, graph };
+    graph = null;
+    audio = element();
+    retire(was.audio, was.graph);
+  }
 
   return {
     play(nextUrl, tapeable) {
       tuned = true;
       url = nextUrl;
       shared = Boolean(tapeable);
-      if (graph) graph.context.resume().catch(() => {});
+      settle();
       start();
     },
     stop() {
       tuned = false;
+      if (old) retire(old.audio, old.graph);
+      old = null;
+      audio.muted = false;
       audio.pause();
       // Drop the stream so the phone stops downloading it.
       audio.removeAttribute('src');
       audio.load();
     },
+    plain,
     // What's playing, as a sound stream for the recorder. release() lets go of it.
     tap() {
       if (!shared) throw Object.assign(new Error('not shared'), { name: 'SecurityError' });
       if (typeof AudioContext === 'undefined') throw Object.assign(new Error('no web audio'), { name: 'NotSupportedError' });
+      // Record again straight after a stop: the element still playing is the one to tape.
+      if (old) keepOld();
       if (!graph) {
         const context = new AudioContext();
         const source = context.createMediaElementSource(audio);
         source.connect(context.destination);
         graph = { context, source };
       }
-      graph.context.resume().catch(() => {});
-      const out = graph.context.createMediaStreamDestination();
-      graph.source.connect(out);
-      return { stream: out.stream, release: () => graph.source.disconnect(out) };
+      const g = graph;
+      g.context.resume().catch(() => {});
+      const out = g.context.createMediaStreamDestination();
+      g.source.connect(out);
+      return {
+        stream: out.stream,
+        release: () => {
+          try {
+            g.source.disconnect(out);
+          } catch {
+            // already let go (the switch to plain disconnects everything)
+          }
+          if (g === graph) plain();
+        },
+      };
     },
   };
 }

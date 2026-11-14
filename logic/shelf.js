@@ -36,17 +36,19 @@ function songCard(tape, kind, len) {
   const meta = `Radio · ${first.artist || tape.station || 'Radio'}${more ? `, +${more} more` : ''}`;
   const by = first.artist ? ` by ${first.artist}` : '';
   const others = more ? ` and ${more} more ${more === 1 ? 'song' : 'songs'}` : '';
-  return { title, len, meta, label: kind.label, aria: `Play ${freq}, ${first.title}${by}${others}: ${kind.name}, ${len}` };
+  return { title, len, meta, label: kind.label, aria: `${freq}, ${first.title}${by}${others}: ${kind.name}, ${len}` };
 }
 
 // What the shelf writes on and under one tape. The kind is written out too, so colour is never the only sign.
+// aria: what a screen reader says for the tape (tapping it opens its menu: Play, Share, Rename, Delete).
 export function tapeCard(tape) {
   const kind = KINDS[tape.kind] || KINDS.voice;
   const len = mmss(tape.duration);
-  if (tape.kind === 'radio' && tape.freq && Array.isArray(tape.songs) && tape.songs.length) return songCard(tape, kind, len);
+  // A radio tape is labelled with its station and first song, until it's given a name of its own.
+  if (tape.kind === 'radio' && !tape.named && tape.freq && Array.isArray(tape.songs) && tape.songs.length) return songCard(tape, kind, len);
   const title = tape.title || kind.name;
   const meta = `${kind.name}, ${len}`;
-  return { title, len, meta, label: kind.label, aria: `Play ${title}: ${meta}` };
+  return { title, len, meta, label: kind.label, aria: `${title}: ${meta}` };
 }
 
 // The line shown when a filter has no tapes.

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { openShelf, closeShelf, saveTape, listTapes, newestTape } from '../../data/tapes.js';
+import { openShelf, closeShelf, saveTape, listTapes, newestTape, renameTape, deleteTape } from '../../data/tapes.js';
 
 const sound = (text = 'abc', type = 'audio/mp4') => new Blob([text], { type });
 const tape = (extra = {}) => ({ kind: 'voice', title: 'Nov 14, 9:41 PM', duration: 9, created: 1000, blob: sound(), ...extra });
@@ -153,5 +153,30 @@ describe('openShelf', () => {
   it('closing when nothing is open does no harm', () => {
     closeShelf();
     expect(() => closeShelf()).not.toThrow();
+  });
+});
+
+describe('renameTape', () => {
+  it('gives the tape a new name, marked as named, and keeps the rest', async () => {
+    const saved = await saveTape(tape({ kind: 'radio', freq: 90.3, station: 'KEXP', songs: [{ at: 0, artist: 'A', title: 'One' }] }));
+    const renamed = await renameTape(saved.id, 'Late Night Drive');
+    expect(renamed).toMatchObject({ id: saved.id, title: 'Late Night Drive', named: true, kind: 'radio', freq: 90.3, duration: 9 });
+    expect(renamed.blob.size).toBe(3);
+    const [back] = await listTapes();
+    expect(back).toMatchObject({ id: saved.id, title: 'Late Night Drive', named: true, songs: [{ at: 0, artist: 'A', title: 'One' }] });
+  });
+  it('a tape that is gone can\'t be renamed', async () => {
+    await expect(renameTape(99, 'X')).rejects.toThrow('That tape is no longer on the shelf.');
+  });
+});
+
+describe('deleteTape', () => {
+  it('takes the tape off the shelf, and only that one', async () => {
+    const one = await saveTape(tape({ title: 'One' }));
+    const two = await saveTape(tape({ title: 'Two' }));
+    await deleteTape(one.id);
+    expect((await listTapes()).map((t) => t.id)).toEqual([two.id]);
+    await deleteTape(99);
+    expect(await listTapes()).toHaveLength(1);
   });
 });

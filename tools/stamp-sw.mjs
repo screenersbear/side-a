@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
 const app = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FOLDERS = ['logic', 'data', 'audio', 'components', 'pages', 'styles', 'fonts', 'images'];
+const FOLDERS = ['logic', 'data', 'audio', 'components', 'pages', 'styles', 'fonts', 'images', 'vendor'];
 const ROOT_FILES = ['index.html', 'app.js', 'manifest.webmanifest'];
 const KEEP = /\.(js|css|html|woff2|png|svg|webmanifest)$/;
 

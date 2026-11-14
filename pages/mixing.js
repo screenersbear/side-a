@@ -1,6 +1,6 @@
 // The two mix screens (pages/mix.js, pages/clip.js) and what they share: the mix being made, the tapes it's cut
 // from, playing it to hear where to cut, and saving it to the shelf as one mixtape. New mix starts it afresh.
-import { emptyMix, addClip, selectClip, removeSelected, toggleJoin, setLine, cutAtLine, mixPlan, mixLength } from '../logic/mix.js';
+import { emptyMix, addClip, selectClip, removeSelected, toggleJoin, setLine, cutAtLine, mixPlan, mixLength, dropTape } from '../logic/mix.js';
 import { startTrim, setEdge, moveEdge, peaks } from '../logic/trim.js';
 import { filterTapes, tapeCard } from '../logic/shelf.js';
 import { tapeTitle } from '../logic/tape-names.js';
@@ -114,6 +114,13 @@ export function createMixing({ onSaved, quiet }) {
     nodes: [mixPage.node, clipPage.node],
     mixNode: mixPage.node,
     clipNode: clipPage.node,
+    // A tape was deleted from the shelf: it leaves the mix, and the clip screen if it was picked there.
+    forget(id) {
+      const next = dropTape(mix, id);
+      if (next !== mix) change(next);
+      tapes = tapes.filter((t) => t.id !== id);
+      if (part.tape && part.tape.id === id) part = { tape: null, trim: startTrim(0), levels: null, reading: false, failed: false };
+    },
     // New mix (from the shelf): an empty mix.
     fresh() {
       stopPlay();

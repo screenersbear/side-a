@@ -1,5 +1,5 @@
-// SIDE A: starts the deck, keeps its state, sends each change to the sound engine, and switches between
-// the deck, the tape shelf, Settings and the mix screens (the address after # says which).
+// SIDE A: starts the deck, keeps its state, sends each change to the sound engine and the lock screen, and switches
+// between the deck, the tape shelf (with its tape menu), Settings and the mix screens (the address after # says which).
 import { startState, deckReducer, SHORT_NOTICE_MS, savedText } from './logic/deck.js';
 import { deckView } from './logic/deck-view.js';
 import { soundPlan } from './logic/sound-plan.js';
@@ -7,17 +7,25 @@ import { STATIONS } from './logic/stations.js';
 import { screenFor, hashFor } from './logic/routes.js';
 import { lookFor } from './logic/looks.js';
 import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets } from './data/settings.js';
-import { listTapes, newestTape } from './data/tapes.js';
+import { listTapes, newestTape, renameTape, deleteTape } from './data/tapes.js';
+import { shareFile } from './data/share.js';
 import { createEngine } from './audio/engine.js';
+import { makeFile } from './audio/export.js';
+import { forgetTape } from './audio/mixdown.js';
+import { createLockScreen } from './audio/lock-screen.js';
+import { createStayAwake } from './audio/stay-awake.js';
 import { createDeckPage } from './pages/deck.js';
 import { createShelfPage } from './pages/shelf.js';
 import { createSettingsPage } from './pages/settings.js';
 import { createMixing } from './pages/mixing.js';
+import { createTapeMenu } from './components/tape-menu.js';
 
 const root = document.getElementById('app');
 const themeColor = document.querySelector('meta[name="theme-color"]');
 let state = startState({ ...loadSettings(), presets: loadPresets() });
 let carryOut = () => {};
+let showLock = () => {};
+const awake = createStayAwake();
 
 function dispatch(action) {
   const next = deckReducer(state, action);
@@ -33,6 +41,9 @@ function dispatch(action) {
     setTimeout(() => dispatch({ type: 'calm', text: next.notice }), SHORT_NOTICE_MS);
   }
   deck.update(deckView(next));
+  showLock(next);
+  // The screen stays on while recording: when the phone locks, a web app stops recording.
+  awake.want('recording', next.recording);
   if (action.type === 'saved' && screenFor(location.hash) === 'shelf') refreshShelf();
 }
 
@@ -50,11 +61,39 @@ function wearLook(id) {
   if (themeColor) themeColor.setAttribute('content', lookFor(deck.look).body);
 }
 
-const shelf = createShelfPage({
-  onPick: (tape) => {
+// Tapping a tape on the shelf opens its menu: Play, Share (MP3 or WAV), Rename, Delete.
+const menu = createTapeMenu({
+  onPlay: (tape) => {
     dispatch({ type: 'load', tape });
     location.hash = hashFor('deck');
   },
+  onRename: async (tape, title) => {
+    const renamed = await renameTape(tape.id, title);
+    dispatch({ type: 'retitle', tape: renamed });
+    refreshShelf();
+    return renamed;
+  },
+  onDelete: async (tape) => {
+    await deleteTape(tape.id);
+    forgetTape(tape.id);
+    mixing.forget(tape.id);
+    dispatch({ type: 'eject', id: tape.id });
+    refreshShelf();
+  },
+  // The screen stays on while the file is made.
+  makeFile: async (...args) => {
+    awake.want('export', true);
+    try {
+      return await makeFile(...args);
+    } finally {
+      awake.want('export', false);
+    }
+  },
+  share: shareFile,
+});
+
+const shelf = createShelfPage({
+  onPick: (tape) => menu.open(tape),
   onBlank: () => {
     dispatch({ type: 'blank' });
     location.hash = hashFor('deck');
@@ -63,8 +102,10 @@ const shelf = createShelfPage({
 });
 const settings = createSettingsPage({ onPick: wearLook });
 const mixing = createMixing({
-  onSaved: () => {
+  // The new mixtape is on the shelf, with its menu open to share it.
+  onSaved: (tape) => {
     location.hash = hashFor('shelf');
+    menu.open(tape, { saved: true });
   },
   // The mix plays alone: the deck stops (unless it's taping, which carries on).
   quiet: () => {
@@ -72,6 +113,12 @@ const mixing = createMixing({
   },
 });
 carryOut = createEngine(dispatch);
+showLock = createLockScreen(dispatch);
+
+// A web app can't record with the phone locked or another app in front: stop and save what was taped.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) dispatch({ type: 'hidden' });
+});
 
 function refreshShelf() {
   listTapes().then(shelf.show, () => shelf.show([]));
@@ -88,13 +135,15 @@ function showScreen() {
   mixing.clipNode.hidden = screen !== 'clip';
   document.title = TITLES[screen];
   if (screen === 'shelf') refreshShelf();
+  else menu.close();
   if (screen === 'mix') mixing.showMix();
   else mixing.leave();
   if (screen === 'clip') mixing.showClip();
 }
 
-root.replaceChildren(deck.node, shelf.node, settings.node, ...mixing.nodes);
+root.replaceChildren(deck.node, shelf.node, settings.node, ...mixing.nodes, menu.node);
 deck.update(deckView(state));
+showLock(state);
 settings.show(deck.look);
 if (themeColor) themeColor.setAttribute('content', lookFor(deck.look).body);
 showScreen();

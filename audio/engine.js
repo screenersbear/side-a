@@ -102,7 +102,11 @@ export function createEngine(dispatch) {
     'tape.pause': () => tape.pause(),
     'tape.seek': (st) => tape.seek(st.pos),
     'rec.start': (st) => startRecording(st),
-    'rec.stop': () => stopRecording(),
+    'rec.stop': () => {
+      // Taping the radio ends: the radio goes back to a plain element now, in the tap, so the phone lets it play.
+      if (job && job.line) radio.plain();
+      stopRecording();
+    },
   };
 
   return function carryOut(steps) {

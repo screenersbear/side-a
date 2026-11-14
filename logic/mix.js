@@ -49,6 +49,15 @@ export function removeSelected(mix) {
   return { ...next, line: Math.min(mix.line, mixLength(next)) };
 }
 
+// A tape was deleted from the shelf: its clips leave the mix (with the joins into them).
+export function dropTape(mix, tapeId) {
+  let next = mix;
+  for (let k = mix.clips.length - 1; k >= 0; k -= 1) {
+    if (mix.clips[k].tapeId === tapeId) next = removeSelected({ ...next, sel: k });
+  }
+  return next;
+}
+
 export function toggleJoin(mix, index) {
   if (!mix.joins[index]) return mix;
   const joins = mix.joins.map((join, k) => (k === index ? (join === 'fade' ? 'none' : 'fade') : join));

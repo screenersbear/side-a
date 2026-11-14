@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   FADE_SECONDS, MIN_PIECE, emptyMix, mixLength, addClip, selectClip, removeSelected, toggleJoin, setLine, clipAt,
-  canCut, cutAtLine, mixPlan, clock, timeline, rulerMarks, mixHint,
+  canCut, cutAtLine, mixPlan, clock, timeline, rulerMarks, mixHint, dropTape,
 } from '../../logic/mix.js';
 
 const clip = (title, from, to, extra = {}) => ({ tapeId: title.length, title, kind: 'voice', from, to, ...extra });
@@ -234,5 +234,30 @@ describe('mixHint', () => {
     expect(mixHint(selectClip(three(), 0))).toBe('Remove the selected piece, or tap it again to let go.');
     expect(mixHint(setLine(three(), 4))).toBe('Cut splits the clip at the red line.');
     expect(mixHint(three())).toBe('Tap a clip to select it. Tap a gap to switch None and Fade in.');
+  });
+});
+
+describe('dropTape', () => {
+  const clip = (tapeId, from, to) => ({ tapeId, title: `Tape ${tapeId}`, kind: 'voice', from, to });
+  const three = () => ({ clips: [clip(1, 0, 4), clip(2, 0, 3), clip(1, 4, 6)], joins: ['fade', 'none'], sel: 1, line: 8 });
+  it('takes out every clip from that tape, with the joins into them', () => {
+    const next = dropTape(three(), 1);
+    expect(next.clips).toEqual([clip(2, 0, 3)]);
+    expect(next.joins).toEqual([]);
+    expect(next.sel).toBe(-1);
+    expect(next.line).toBe(3);
+  });
+  it('keeps the join into a clip that stays', () => {
+    const mix = { clips: [clip(1, 0, 4), clip(2, 0, 3), clip(3, 0, 2)], joins: ['none', 'fade'], sel: -1, line: 1 };
+    const next = dropTape(mix, 2);
+    expect(next.clips.map((c) => c.tapeId)).toEqual([1, 3]);
+    expect(next.joins).toEqual(['fade']);
+    expect(next.line).toBe(1);
+  });
+  it('a tape not in the mix changes nothing', () => {
+    const mix = three();
+    expect(dropTape(mix, 9)).toBe(mix);
+    const empty = emptyMix();
+    expect(dropTape(empty, 1)).toBe(empty);
   });
 });

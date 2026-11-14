@@ -20,6 +20,11 @@ export function decodeTape(tape) {
   return decoded.get(tape.id);
 }
 
+// Lets go of a tape's decoded sound (it was deleted).
+export function forgetTape(id) {
+  decoded.delete(id);
+}
+
 // The decoded sound of every tape in the plan, by tape id.
 export async function decodePlan(plan, tapes) {
   const ids = [...new Set(plan.map((p) => p.tapeId))];

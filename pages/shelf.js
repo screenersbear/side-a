@@ -1,5 +1,5 @@
 // The tape shelf: every recording as a small cassette, label colour by kind, plus a blank tape at the end.
-// Tapping a tape puts it in the deck and plays it. The blank tape opens the deck ready to record.
+// Tapping a tape opens its menu (components/tape-menu.js). The blank tape opens the deck ready to record.
 import { el, setText } from '../components/el.js';
 import { icon } from '../components/icons.js';
 import { createCassette } from '../components/cassette.js';
@@ -14,7 +14,7 @@ function tapeButton(tape, onPick) {
   cassette.update({ title: card.title, len: card.len });
   return el(
     'button',
-    { class: 'tape', type: 'button', 'aria-label': card.aria, onclick: () => onPick(tape) },
+    { class: 'tape', type: 'button', 'aria-label': card.aria, 'aria-haspopup': 'dialog', onclick: () => onPick(tape) },
     cassette.node,
     el('span', { class: 'tape-words' }, el('span', { class: 'tape-title' }, card.title), el('span', { class: 'tape-meta' }, card.meta)),
   );

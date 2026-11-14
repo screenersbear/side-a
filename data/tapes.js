@@ -1,5 +1,6 @@
 // The tape shelf's storage: recordings are kept on the phone in IndexedDB (room for long recordings, unlike localStorage).
-// A tape: { id, kind: 'voice' | 'radio' | 'mix', title, duration (seconds), created (ms), mime, blob }.
+// A tape: { id, kind: 'voice' | 'radio' | 'mix', title, duration (seconds), created (ms), mime, blob }, and named: true
+// once it has been renamed on the shelf.
 // Stored with the sound as bytes (sound) instead of blob.
 
 const DB_NAME = 'side-a';
@@ -69,4 +70,19 @@ export async function listTapes() {
 export async function newestTape() {
   const tapes = await listTapes();
   return tapes.reduce((best, t) => (!best || (t.created || 0) > (best.created || 0) ? t : best), null);
+}
+
+// Gives a tape a new name. Resolves to the renamed tape.
+export async function renameTape(id, title) {
+  const objects = await store('readwrite');
+  const record = await done(objects.get(id));
+  if (!record) throw new Error('That tape is no longer on the shelf.');
+  const renamed = { ...record, title, named: true };
+  await done(objects.put(renamed));
+  return toTape(renamed);
+}
+
+// Takes a tape off the shelf for good.
+export async function deleteTape(id) {
+  await done((await store('readwrite')).delete(id));
 }

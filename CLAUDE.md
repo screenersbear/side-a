@@ -12,18 +12,37 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   `stations.js` the dial (Next/Previous seek station to station, no manual tuning) and the four presets
   (defaults WBGO, The Current, KEXP, KUTX; `cleanPresets` checks saved ones against the dial);
   `shelf.js` filters and labels; `recording.js` formats and error words; `songs.js` and `now-playing.js` the song
-  titles shown while a station plays and kept on radio tapes; `looks.js` the four looks and their colours; `routes.js` which screen (#/shelf, #/settings).
+  titles shown while a station plays and kept on radio tapes; `looks.js` the four looks and their colours; `routes.js` which screen (#/shelf, #/settings);
+  `lock-screen.js` what the phone's lock screen shows; `export.js` and `mp3.js` sharing a tape as a file.
 - `data/stations.js`: every station on the dial, one real US station per FM frequency (73, from Radio Browser,
   checked 2026-11-14). `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
   on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
-- `data/`: `tapes.js` (IndexedDB; the sound is stored as bytes, not a Blob, so Safari private mode works) and
-  `settings.js` (last station and record source; the look and the presets, each under its own key).
+- `data/`: `tapes.js` (IndexedDB; the sound is stored as bytes, not a Blob, so Safari private mode works; rename sets
+  `named: true`, so a radio tape's label shows the new name instead of its first song), `settings.js` (last station and
+  record source; the look and the presets, each under its own key) and `share.js` (the share sheet, or a download).
 - `audio/`: `radio.js` (audio element on the stream; tapeable stations are asked to share their sound, crossOrigin,
-  and fall back to playing plain if they refuse), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
+  and fall back to playing plain if they refuse. Web Audio only while taping (HANDOFF "Background and lock screen": a
+  locked iPhone silences Web Audio but keeps a plain element playing): when taping stops, `plain()` starts a fresh
+  muted element in the same tap and switches to it once it plays; if the phone pauses it after unmuting, the taped
+  element carries on), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
   with call clean-up off, or the radio as it plays, element -> Web Audio -> MediaStreamDestination, from the moment REC
   is pressed; Starky 2026-11-14: never a second connection), `now-playing.js` (while the radio plays, reads the station's
   song title every 20 s; one reading feeds both the deck's second line and a radio tape's songs: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
   Icecast server's status-json.xsl, "kexp" = KEXP's feed; 14 of 73 stations have one), `engine.js` runs the steps.
+  `lock-screen.js` (Media Session: station or tape, song, the cassette icon; skip = station on the radio, 10 s on a
+  tape), `stay-awake.js` (screen wake lock while recording or making a file), `export.js` (a tape as MP3 or WAV).
+- Lock screen and background (HANDOFF 2026-11-14): when the app is hidden mid-recording (phone locked, another app),
+  the recording stops and is saved: "Recording stopped when you left the app. The tape is saved." Making a file pauses
+  while hidden and carries on when back. Not yet measured on Starky's iPhone (home screen vs Safari, locked); if it
+  falls short, the real fix is a Capacitor wrapper with UIBackgroundModes = audio.
+- Tape menu and sharing (HANDOFF "Export"): tapping a tape on the shelf opens `components/tape-menu.js`, a
+  `<dialog>`: Play, Share, Rename, Delete (asks first, Keep it focused). Share asks MP3 (default, made on the phone with
+  LAME, 192 kbps, progress shown, pauses when hidden) or WAV (a mixtape shares its own WAV; other tapes are decoded and
+  written as WAV). A file ready within a second goes straight to the share sheet; a slower one waits for a tap on
+  Share (phones only share straight from a tap). No share sheet: it downloads. Saving a mixtape opens its menu with
+  Share first. Deleting a tape also takes it out of the deck and out of a mix in progress.
+- `vendor/lamejs.js`: the MP3 encoder (@breezystack/lamejs 1.2.7, LGPL-3.0, licence beside it), loaded only when an MP3
+  is made. It's a dependency in package.json so npm audit checks it; after updating it, run `npm run vendor`.
 - `pages/`: `deck.js` builds the deck in the picked look: the parts are the same in every look
   (`components/deck-parts.js`), each look in `pages/looks/` only arranges them and adds its moving part (Pocket level
   bars, Deck meters, Sport EQ, Boombox speaker; all CSS, off with reduce motion). `shelf.js`, `settings.js`.
@@ -43,7 +62,8 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   renders it (OfflineAudioContext) into one WAV (`logic/wav.js`, 44.1 kHz stereo, about 10 MB a minute).
 - `components/`: cassette (true 1004 x 638 geometry; `bandBig` for the Deck look), keys, tuner, the moving parts.
 - `styles/`: `deck-common.css` (what every look shares), one `look-*.css` per look (colours and sizes from the
-  mockup's `Skin*.dc.html` at 844 x 390, scaling with the phone), `shelf.css`, `settings.css`, `mix.css`.
+  mockup's `Skin*.dc.html` at 844 x 390, scaling with the phone), `shelf.css`, `tape-menu.css` (no mockup: built from
+  DESIGN.md, paper card on the dark shelf, Control keys, one mango key), `settings.css`, `mix.css`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
 - `npm run check-stations` checks every station is streaming and whether it allows taping (needs the station to send
@@ -54,9 +74,12 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
 - **Mute while testing the radio** (Starky, 2026-11-14). In the browser pane, run this before pressing anything, after
   every reload: `const p = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { this.muted = true; return p.call(this); }`.
   The mix plays through Web Audio, so mute that too: route every live context's `destination` through a zero gain
-  (the `fakeSources` stand-in in `tests/e2e/side-a.spec.mjs` has the snippet).
-  The browser tests already mute themselves and use a stand-in station and mic (`tests/e2e/side-a.spec.mjs`). They
-  block the service worker: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
+  (the `fakeSources` stand-in in `tests/e2e/side-a-setup.mjs` has the snippet). The radio unmutes its plain element
+  after taping, so also make `muted` stay true (fakeSources does). Before trying Share in the pane, stand in for
+  `navigator.share`, or the file downloads to the Mac.
+  The browser tests already mute themselves and use a stand-in station and mic (`tests/e2e/side-a-setup.mjs`, shared by
+  `side-a`, `looks-and-mix`, `shelf-menu` and `phone` .spec.mjs). They block the service worker: in WebKit,
+  Playwright's stand-ins can't answer a page a service worker controls.
 - The service worker only registers on https and on 127.0.0.1 (the test server), so a preview on localhost shows edits.
 
 ## Testing rules (from app-safety-kit)

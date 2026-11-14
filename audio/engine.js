@@ -36,7 +36,8 @@ export function createEngine(dispatch) {
       },
       (error) => {
         if (job === j) job = null;
-        if (!j.stopped) dispatch({ type: 'fail', message: recordError(error, step.source) });
+        // A station that won't be taped keeps playing; a mic that won't start stops the deck.
+        if (!j.stopped) dispatch({ type: step.source === 'line' ? 'refused' : 'fail', message: recordError(error, step.source) });
       },
     );
   }

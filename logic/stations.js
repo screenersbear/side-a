@@ -1,11 +1,12 @@
-// The four radio presets: real public stations whose streams let the app tape them (they allow it in a browser).
-// freq is each station's real FM frequency, which is where the needle sits on the dial.
-export const STATIONS = [
-  { freq: 88.3, name: 'WBGO Jazz', place: 'Newark', url: 'https://ais-sa8.cdnstream1.com/3629_128.mp3' },
-  { freq: 89.3, name: 'The Current', place: 'Minneapolis', url: 'https://current.stream.publicradio.org/current.mp3' },
-  { freq: 90.3, name: 'KEXP', place: 'Seattle', url: 'https://kexp-mp3-128.streamguys1.com/kexp128.mp3' },
-  { freq: 98.9, name: 'KUTX', place: 'Austin', url: 'https://streams.kut.org/4428_192.mp3' },
-];
+// The radio band: every station on the dial (data/stations.js), the four presets, and how Next and Previous move.
+// Next and Previous seek to the next station up or down the dial, like the seek button on a real radio.
+import { STATION_LIST } from '../data/stations.js';
+
+// Low to high on the dial, so Next always moves the needle right.
+export const STATIONS = [...STATION_LIST].sort((a, b) => a.freq - b.freq);
+
+// The four number keys: favourite stations, by frequency.
+export const PRESET_FREQS = [88.3, 89.3, 90.3, 98.9];
 
 // The FM dial runs from 88 to 108 MHz, with a numbered tick every 4.
 export const DIAL_LOW = 88;
@@ -34,7 +35,30 @@ export function freqText(freq) {
   return Number.isFinite(f) ? f.toFixed(1) : '';
 }
 
-// Is this a preset number the deck has?
+// Is this a station number the dial has?
 export function isStation(index) {
   return Number.isInteger(index) && index >= 0 && index < STATIONS.length;
+}
+
+// The station on a frequency, as its number on the dial, or -1 when nothing is there.
+export function stationAt(freq) {
+  const f = Number(freq);
+  return STATIONS.findIndex((s) => Math.abs(s.freq - f) < 0.05);
+}
+
+// The station a preset key tunes to (key 0 to 3), or -1.
+export function presetStation(key) {
+  if (!Number.isInteger(key) || key < 0 || key >= PRESET_FREQS.length) return -1;
+  return stationAt(PRESET_FREQS[key]);
+}
+
+// Which preset key a station is on, 1 to 4, or 0 when it isn't a preset.
+export function presetNumber(index) {
+  if (!isStation(index)) return 0;
+  return PRESET_FREQS.findIndex((f) => stationAt(f) === index) + 1;
+}
+
+// Can this station be taped? Some streams don't allow recording.
+export function canTape(station) {
+  return Boolean(station) && station.tape !== false;
 }

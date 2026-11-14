@@ -1,24 +1,99 @@
 import { describe, it, expect } from 'vitest';
-import { STATIONS, DIAL_LOW, DIAL_HIGH, DIAL_TICKS, dialPercent, stepStation, freqText, isStation } from '../../logic/stations.js';
+import {
+  STATIONS, PRESET_FREQS, DIAL_LOW, DIAL_HIGH, DIAL_TICKS,
+  dialPercent, stepStation, freqText, isStation, stationAt, presetStation, presetNumber, canTape,
+} from '../../logic/stations.js';
+import { STATION_LIST } from '../../data/stations.js';
 
 describe('STATIONS', () => {
-  it('has four presets, each with a dial spot, a name, a place and a secure stream', () => {
-    expect(STATIONS).toHaveLength(4);
+  it('has a station for most of the dial, each with a name and a secure stream', () => {
+    expect(STATIONS.length).toBeGreaterThanOrEqual(60);
     for (const s of STATIONS) {
       expect(s.freq).toBeGreaterThanOrEqual(DIAL_LOW);
       expect(s.freq).toBeLessThanOrEqual(DIAL_HIGH);
-      expect(s.name.length).toBeGreaterThan(0);
-      expect(s.place.length).toBeGreaterThan(0);
+      expect(s.name.trim().length).toBeGreaterThan(0);
+      expect(typeof s.place).toBe('string');
       expect(s.url).toMatch(/^https:\/\//);
     }
   });
-  it('runs left to right on the dial', () => {
+  it('runs low to high, one station per frequency, so Next always moves right', () => {
     const freqs = STATIONS.map((s) => s.freq);
-    expect(freqs).toEqual([...freqs].sort((a, b) => a - b));
+    for (let i = 1; i < freqs.length; i++) expect(freqs[i]).toBeGreaterThan(freqs[i - 1]);
+  });
+  it('uses real US FM channels (odd tenths)', () => {
+    for (const s of STATIONS) expect(Math.round(s.freq * 10) % 2).toBe(1);
+  });
+  it('reaches from the bottom of the dial to the top', () => {
+    expect(STATIONS[0].freq).toBeLessThan(89);
+    expect(STATIONS[STATIONS.length - 1].freq).toBeGreaterThan(107);
+  });
+  it('sorts the list without changing the data file', () => {
+    expect(STATIONS).not.toBe(STATION_LIST);
+    expect(STATIONS).toHaveLength(STATION_LIST.length);
+  });
+  it('sorts a list given out of order', () => {
+    const byFreq = [...STATION_LIST].reverse().sort((a, b) => a.freq - b.freq);
+    expect(byFreq.map((s) => s.freq)).toEqual(STATIONS.map((s) => s.freq));
   });
   it('has a dial from 88 to 108 with a tick every 4', () => {
     expect([DIAL_LOW, DIAL_HIGH]).toEqual([88, 108]);
     expect(DIAL_TICKS).toEqual([88, 92, 96, 100, 104, 108]);
+  });
+});
+
+describe('presets', () => {
+  it('are four stations that are on the dial', () => {
+    expect(PRESET_FREQS).toEqual([88.3, 89.3, 90.3, 98.9]);
+    for (let key = 0; key < 4; key++) expect(isStation(presetStation(key))).toBe(true);
+  });
+  it('tune to WBGO, The Current, KEXP and KUTX', () => {
+    expect([0, 1, 2, 3].map((k) => STATIONS[presetStation(k)].name)).toEqual(['WBGO Jazz', 'The Current', 'KEXP', 'KUTX']);
+  });
+  it('presetStation ignores keys the deck does not have', () => {
+    expect(presetStation(-1)).toBe(-1);
+    expect(presetStation(4)).toBe(-1);
+    expect(presetStation(1.5)).toBe(-1);
+    expect(presetStation(undefined)).toBe(-1);
+  });
+  it('presetNumber says which key a station is on', () => {
+    expect(presetNumber(presetStation(0))).toBe(1);
+    expect(presetNumber(presetStation(3))).toBe(4);
+  });
+  it('presetNumber is 0 for other stations and nonsense', () => {
+    expect(presetNumber(stationAt(91.1))).toBe(0);
+    expect(presetNumber(-1)).toBe(0);
+    expect(presetNumber(999)).toBe(0);
+  });
+});
+
+describe('stationAt', () => {
+  it('finds a station by its frequency', () => {
+    expect(STATIONS[stationAt(90.3)].name).toBe('KEXP');
+    expect(STATIONS[stationAt('91.1')].name).toBe('WFMU');
+  });
+  it('allows for rounding', () => {
+    expect(stationAt(90.30000001)).toBe(stationAt(90.3));
+    expect(stationAt(90.34)).toBe(stationAt(90.3));
+  });
+  it('is -1 where nothing is on the dial', () => {
+    expect(stationAt(90.2)).toBe(-1);
+    expect(stationAt(120)).toBe(-1);
+    expect(stationAt(undefined)).toBe(-1);
+  });
+});
+
+describe('canTape', () => {
+  it('lets most stations be taped', () => {
+    expect(canTape(STATIONS[stationAt(90.3)])).toBe(true);
+    expect(canTape({ name: 'x' })).toBe(true);
+  });
+  it('knows WFMU does not allow it', () => {
+    expect(canTape(STATIONS[stationAt(91.1)])).toBe(false);
+    expect(STATIONS.filter((s) => !canTape(s)).map((s) => s.name)).toEqual(['WFMU']);
+  });
+  it('says no for no station', () => {
+    expect(canTape(undefined)).toBe(false);
+    expect(canTape(null)).toBe(false);
   });
 });
 
@@ -44,19 +119,25 @@ describe('dialPercent', () => {
 });
 
 describe('stepStation', () => {
-  it('moves one along', () => {
+  it('moves one along the whole dial', () => {
     expect(stepStation(1, 1)).toBe(2);
     expect(stepStation(2, -1)).toBe(1);
   });
-  it('goes round at both ends', () => {
-    expect(stepStation(3, 1)).toBe(0);
-    expect(stepStation(0, -1)).toBe(3);
+  it('goes round at both ends of the dial', () => {
+    expect(stepStation(STATIONS.length - 1, 1)).toBe(0);
+    expect(stepStation(0, -1)).toBe(STATIONS.length - 1);
     expect(stepStation(0, -5, 4)).toBe(3);
     expect(stepStation(2, 9, 4)).toBe(3);
   });
-  it('uses the count it is given', () => {
-    expect(stepStation(1, 1, 2)).toBe(0);
-    expect(stepStation(0, 0, 1)).toBe(0);
+  it('visits every station once on the way round', () => {
+    const seen = new Set();
+    let i = 0;
+    for (let n = 0; n < STATIONS.length; n++) {
+      seen.add(i);
+      i = stepStation(i, 1);
+    }
+    expect(seen.size).toBe(STATIONS.length);
+    expect(i).toBe(0);
   });
   it('treats bad input as no move from the first station', () => {
     expect(stepStation(1.5, 1)).toBe(1);
@@ -81,12 +162,13 @@ describe('freqText', () => {
 });
 
 describe('isStation', () => {
-  it('knows the four presets', () => {
-    expect([0, 1, 2, 3].map(isStation)).toEqual([true, true, true, true]);
+  it('knows every station on the dial', () => {
+    expect(isStation(0)).toBe(true);
+    expect(isStation(STATIONS.length - 1)).toBe(true);
   });
   it('rejects numbers past either end', () => {
     expect(isStation(-1)).toBe(false);
-    expect(isStation(4)).toBe(false);
+    expect(isStation(STATIONS.length)).toBe(false);
   });
   it('rejects things that are not whole numbers', () => {
     expect(isStation(1.5)).toBe(false);

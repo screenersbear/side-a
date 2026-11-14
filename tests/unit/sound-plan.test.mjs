@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { soundPlan } from '../../logic/sound-plan.js';
 import { startState, deckReducer } from '../../logic/deck.js';
-import { STATIONS } from '../../logic/stations.js';
+import { STATIONS, stationAt } from '../../logic/stations.js';
+
+const WBGO = stationAt(88.3);
+const KEXP = stationAt(90.3);
 
 const NOW = new Date(2026, 10, 14, 21, 41).getTime();
 const blob = { size: 1 };
@@ -15,15 +18,16 @@ function plan(state, action) {
   return soundPlan(state, next, a.type);
 }
 const fresh = () => startState();
-const radio = (station = 0) => ({ ...fresh(), station, playing: true });
+const radio = (station = WBGO) => ({ ...fresh(), station, playing: true });
 const tapeIn = (extra = {}) => ({ ...fresh(), mode: 'tape', tape: TAPE, ...extra });
 
 describe('soundPlan: radio', () => {
   it('Play starts the station', () => {
-    expect(plan(fresh(), 'play')).toEqual([{ do: 'radio.play', url: STATIONS[0].url }]);
+    expect(plan(fresh(), 'play')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO].url }]);
   });
   it('a new station replaces the old one', () => {
-    expect(plan(radio(0), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[1].url }]);
+    expect(plan(radio(WBGO), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO + 1].url }]);
+    expect(plan(radio(WBGO), { type: 'preset', key: 2 })).toEqual([{ do: 'radio.play', url: STATIONS[KEXP].url }]);
   });
   it('Stop stops the radio', () => {
     expect(plan(radio(), 'stop')).toEqual([{ do: 'radio.stop' }]);
@@ -32,13 +36,13 @@ describe('soundPlan: radio', () => {
     expect(plan(radio(), { type: 'live' })).toEqual([]);
   });
   it('the radio keeps playing, uninterrupted, when Record tapes it', () => {
-    const steps = plan({ ...radio(2), tuning: false }, { type: 'rec', now: NOW });
-    expect(steps).toEqual([{ do: 'rec.start', source: 'line', url: STATIONS[2].url, draft: { kind: 'radio', title: '90.3 KEXP, Nov 14' } }]);
+    const steps = plan({ ...radio(KEXP), tuning: false }, { type: 'rec', now: NOW });
+    expect(steps).toEqual([{ do: 'rec.start', source: 'line', url: STATIONS[KEXP].url, draft: { kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio' } }]);
   });
   it('taping the radio from tape mode turns the radio on', () => {
-    const steps = plan(tapeIn({ source: 'line', station: 1 }), { type: 'rec', now: NOW });
+    const steps = plan(tapeIn({ source: 'line', station: KEXP }), { type: 'rec', now: NOW });
     expect(steps.map((s) => s.do)).toEqual(['rec.start', 'radio.play']);
-    expect(steps[1].url).toBe(STATIONS[1].url);
+    expect(steps[1].url).toBe(STATIONS[KEXP].url);
   });
 });
 
@@ -78,7 +82,7 @@ describe('soundPlan: tape', () => {
 describe('soundPlan: recording', () => {
   it('Record in tape mode starts the mic', () => {
     expect(plan(tapeIn(), { type: 'rec', now: NOW })).toEqual([
-      { do: 'rec.start', source: 'mic', draft: { kind: 'voice', title: 'Nov 14, 9:41 PM' } },
+      { do: 'rec.start', source: 'mic', draft: { kind: 'voice', title: 'Nov 14, 9:41 PM', from: 'tape' } },
     ]);
   });
   it('Record while a tape plays pauses it first', () => {
@@ -92,6 +96,13 @@ describe('soundPlan: recording', () => {
   it('Stop while taping the radio ends the recording, then the radio', () => {
     const rec = deckReducer(radio(), { type: 'rec', now: NOW });
     expect(plan(rec, 'stop')).toEqual([{ do: 'rec.stop' }, { do: 'radio.stop' }]);
+  });
+  it('Record on a station that does not allow it needs no sound changes', () => {
+    expect(plan(radio(stationAt(91.1)), { type: 'rec', now: NOW })).toEqual([]);
+  });
+  it('a refused taping ends the recording and keeps the radio going', () => {
+    const rec = deckReducer(radio(), { type: 'rec', now: NOW });
+    expect(plan(rec, { type: 'refused', message: 'x' })).toEqual([{ do: 'rec.stop' }]);
   });
   it('switching to the radio while taping it keeps the radio going', () => {
     const rec = deckReducer(radio(), { type: 'rec', now: NOW });

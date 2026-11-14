@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { startState, deckReducer, radioOn, tapeOn, SKIP_SECONDS } from '../../logic/deck.js';
+import { STATIONS, stationAt } from '../../logic/stations.js';
+import { NOT_ALLOWED } from '../../logic/recording.js';
+
+const WBGO = stationAt(88.3);
+const CURRENT = stationAt(89.3);
+const KEXP = stationAt(90.3);
+const WFMU = stationAt(91.1);
+const LAST = STATIONS.length - 1;
 
 const NOW = new Date(2026, 10, 14, 21, 41).getTime();
 const blob = { size: 10 };
@@ -10,23 +18,23 @@ const radioPlaying = () => run(fresh(), 'play', 'live');
 const tapeIn = (extra = {}) => ({ ...fresh(), mode: 'tape', tape: TAPE, ...extra });
 
 describe('startState', () => {
-  it('opens on the radio, quiet, first preset, mic', () => {
+  it('opens on the radio, quiet, preset 1, mic', () => {
     expect(fresh()).toEqual({
       mode: 'radio', playing: false, recording: false, tuning: false, source: 'mic',
-      station: 0, tape: null, draft: null, pos: 0, notice: '',
+      station: WBGO, tape: null, draft: null, pos: 0, notice: '',
     });
   });
-  it('remembers the last station and record source', () => {
-    const s = startState({ station: 2, source: 'line' });
-    expect(s.station).toBe(2);
+  it('remembers the last station (by frequency) and record source', () => {
+    const s = startState({ freq: 90.3, source: 'line' });
+    expect(s.station).toBe(KEXP);
     expect(s.source).toBe('line');
   });
   it('ignores saved values that make no sense', () => {
-    const s = startState({ station: 9, source: 'tv' });
-    expect(s.station).toBe(0);
+    const s = startState({ freq: 90.2, source: 'tv' });
+    expect(s.station).toBe(WBGO);
     expect(s.source).toBe('mic');
-    expect(startState(null).station).toBe(0);
-    expect(startState({ station: -1 }).station).toBe(0);
+    expect(startState(null).station).toBe(WBGO);
+    expect(startState({ station: 2 }).station).toBe(WBGO);
   });
 });
 
@@ -52,14 +60,14 @@ describe('radioOn and tapeOn', () => {
 
 describe('Record', () => {
   it('on the radio, tapes the radio', () => {
-    const s = run({ ...radioPlaying(), station: 2 }, { type: 'rec', now: NOW });
+    const s = run({ ...radioPlaying(), station: KEXP }, { type: 'rec', now: NOW });
     expect(s).toMatchObject({ mode: 'tape', recording: true, playing: true, source: 'line', pos: 0, tuning: false, notice: '' });
-    expect(s.draft).toEqual({ kind: 'radio', title: '90.3 KEXP, Nov 14' });
+    expect(s.draft).toEqual({ kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio' });
   });
   it('in tape mode, records from the chosen source', () => {
     const mic = run(tapeIn({ pos: 12 }), { type: 'rec', now: NOW });
     expect(mic).toMatchObject({ recording: true, playing: true, source: 'mic', pos: 0 });
-    expect(mic.draft).toEqual({ kind: 'voice', title: 'Nov 14, 9:41 PM' });
+    expect(mic.draft).toEqual({ kind: 'voice', title: 'Nov 14, 9:41 PM', from: 'tape' });
     const line = run(tapeIn({ source: 'line' }), { type: 'rec', now: NOW });
     expect(line.draft.kind).toBe('radio');
     expect(line.source).toBe('line');
@@ -72,6 +80,19 @@ describe('Record', () => {
   it('does nothing while already recording', () => {
     const s = run(tapeIn(), { type: 'rec', now: NOW });
     expect(deckReducer(s, { type: 'rec', now: NOW + 5000 })).toBe(s);
+  });
+  it('on a station that does not allow it, just says so and keeps playing', () => {
+    const before = { ...radioPlaying(), station: WFMU };
+    const s = run(before, { type: 'rec', now: NOW });
+    expect(s).toEqual({ ...before, notice: NOT_ALLOWED });
+  });
+  it('from Radio in, on a station that does not allow it, says so', () => {
+    const s = run(tapeIn({ source: 'line', station: WFMU }), { type: 'rec', now: NOW });
+    expect(s).toMatchObject({ recording: false, playing: false, mode: 'tape', notice: NOT_ALLOWED, draft: null });
+  });
+  it('the mic still records while tuned to that station', () => {
+    const s = run(tapeIn({ station: WFMU }), { type: 'rec', now: NOW });
+    expect(s).toMatchObject({ recording: true, notice: '' });
   });
 });
 
@@ -128,10 +149,24 @@ describe('Stop', () => {
 });
 
 describe('Rewind and fast forward', () => {
-  it('change station on the radio and play it', () => {
-    expect(run(fresh(), 'ff')).toMatchObject({ station: 1, playing: true, tuning: true, mode: 'radio' });
-    expect(run(fresh(), 'rew').station).toBe(3);
-    expect(run({ ...fresh(), station: 3 }, 'ff').station).toBe(0);
+  it('seek to the next station up or down the dial and play it', () => {
+    expect(run(fresh(), 'ff')).toMatchObject({ station: WBGO + 1, playing: true, tuning: true, mode: 'radio' });
+    expect(run(fresh(), 'rew').station).toBe(WBGO - 1);
+    expect(run({ ...fresh(), station: LAST }, 'ff').station).toBe(0);
+    expect(run({ ...fresh(), station: 0 }, 'rew').station).toBe(LAST);
+  });
+  it('reach every station on the dial, one press at a time', () => {
+    let s = fresh();
+    const heard = new Set([s.station]);
+    for (let n = 1; n < STATIONS.length; n++) {
+      const before = STATIONS[s.station].freq;
+      s = run(s, 'ff');
+      // Each press moves up the dial, except the one jump from the top back to the bottom.
+      if (s.station !== 0) expect(STATIONS[s.station].freq).toBeGreaterThan(before);
+      heard.add(s.station);
+    }
+    expect(heard.size).toBe(STATIONS.length);
+    expect(run(s, 'ff').station).toBe(WBGO);
   });
   it('wind a tape by ten seconds', () => {
     expect(SKIP_SECONDS).toBe(10);
@@ -160,24 +195,24 @@ describe('Rewind and fast forward', () => {
 });
 
 describe('Presets', () => {
-  it('tune to the preset and play it', () => {
-    expect(run(fresh(), { type: 'preset', index: 2 })).toMatchObject({ station: 2, mode: 'radio', playing: true, tuning: true, notice: '' });
+  it('tune to the preset station and play it', () => {
+    expect(run(fresh(), { type: 'preset', key: 2 })).toMatchObject({ station: KEXP, mode: 'radio', playing: true, tuning: true, notice: '' });
   });
   it('switch from tape to radio, ending a recording', () => {
-    const s = run(tapeIn(), { type: 'rec', now: NOW }, { type: 'preset', index: 1 });
-    expect(s).toMatchObject({ mode: 'radio', recording: false, playing: true, station: 1 });
+    const s = run(tapeIn(), { type: 'rec', now: NOW }, { type: 'preset', key: 1 });
+    expect(s).toMatchObject({ mode: 'radio', recording: false, playing: true, station: CURRENT });
   });
   it('do nothing for the station already playing', () => {
-    const s = { ...radioPlaying(), station: 1 };
-    expect(deckReducer(s, { type: 'preset', index: 1 })).toBe(s);
+    const s = { ...radioPlaying(), station: CURRENT };
+    expect(deckReducer(s, { type: 'preset', key: 1 })).toBe(s);
   });
   it('start the same station again when the radio is off or on tape', () => {
-    expect(run({ ...fresh(), station: 1 }, { type: 'preset', index: 1 }).playing).toBe(true);
-    expect(run(tapeIn({ station: 1 }), { type: 'preset', index: 1 }).mode).toBe('radio');
+    expect(run({ ...fresh(), station: CURRENT }, { type: 'preset', key: 1 }).playing).toBe(true);
+    expect(run(tapeIn({ station: CURRENT }), { type: 'preset', key: 1 }).mode).toBe('radio');
   });
   it('ignore presets the deck does not have', () => {
     const s = fresh();
-    expect(deckReducer(s, { type: 'preset', index: 4 })).toBe(s);
+    expect(deckReducer(s, { type: 'preset', key: 4 })).toBe(s);
     expect(deckReducer(s, { type: 'preset' })).toBe(s);
   });
 });
@@ -333,6 +368,28 @@ describe('Signal', () => {
   it('lost is ignored when the radio is off', () => {
     const s = tapeIn({ playing: true });
     expect(deckReducer(s, { type: 'lost', message: 'x' })).toBe(s);
+  });
+});
+
+describe('Refused (the station would not let its stream be taped)', () => {
+  it('after Record on the radio: back to the radio, still playing, with the message', () => {
+    const s = run(radioPlaying(), { type: 'rec', now: NOW }, { type: 'refused', message: NOT_ALLOWED });
+    expect(s).toMatchObject({ mode: 'radio', playing: true, recording: false, draft: null, notice: NOT_ALLOWED });
+  });
+  it('after Record from Radio in on tape: back to tape, stopped', () => {
+    const s = run(tapeIn({ source: 'line' }), { type: 'rec', now: NOW }, { type: 'refused', message: "Couldn't reach the station." });
+    expect(s).toMatchObject({ mode: 'tape', playing: false, recording: false, draft: null, notice: "Couldn't reach the station." });
+  });
+  it('stays stopped if Stop was pressed first', () => {
+    const s = run(radioPlaying(), { type: 'rec', now: NOW }, 'stop', { type: 'refused', message: 'x' });
+    expect(s).toMatchObject({ mode: 'radio', playing: false });
+  });
+  it('uses the not-allowed message when none is given', () => {
+    expect(run(radioPlaying(), { type: 'rec', now: NOW }, 'refused').notice).toBe(NOT_ALLOWED);
+  });
+  it('does nothing when nothing is being recorded', () => {
+    const s = radioPlaying();
+    expect(deckReducer(s, { type: 'refused', message: 'x' })).toBe(s);
   });
 });
 

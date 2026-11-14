@@ -1,7 +1,7 @@
 // SIDE A flows in a real browser: radio, recording a voice note, taping the radio, the shelf, the portrait prompt.
 // The stations and the mic are stand-ins (a short tone, a test signal), so these tests are silent and need no internet.
 import { test, expect } from '@playwright/test';
-import { STATIONS } from '../../logic/stations.js';
+import { STATIONS, stationAt } from '../../logic/stations.js';
 
 // A few seconds of quiet tone as a WAV file, standing in for a station's stream.
 function toneWav(seconds = 20, rate = 8000) {
@@ -16,7 +16,7 @@ function toneWav(seconds = 20, rate = 8000) {
 }
 
 // In the page: muted sound, a test-signal mic, and station streams that keep arriving until stopped (for taping the radio).
-function fakeSources(micError) {
+function fakeSources({ micError, blocked }) {
   // Tests stay silent (Starky's rule: mute while testing the radio).
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function mutedPlay() {
@@ -26,6 +26,8 @@ function fakeSources(micError) {
   const realFetch = window.fetch.bind(window);
   window.fetch = (url, opts = {}) => {
     if (!/^https:\/\//.test(String(url))) return realFetch(url, opts);
+    // A station that won't let its stream be read fails like a browser blocking it.
+    if (String(url) === blocked) return Promise.reject(new TypeError('Failed to fetch'));
     const stream = new ReadableStream({
       start(c) {
         const t = setInterval(() => c.enqueue(new Uint8Array(2000)), 100);
@@ -50,12 +52,12 @@ function fakeSources(micError) {
   };
 }
 
-async function openDeck(page, { micError = '' } = {}) {
+async function openDeck(page, { micError = '', blocked = '' } = {}) {
   const wav = toneWav();
   for (const s of STATIONS) {
     await page.route(s.url, (route) => route.fulfill({ status: 200, body: wav, headers: { 'content-type': 'audio/wav' } }));
   }
-  await page.addInitScript(fakeSources, micError);
+  await page.addInitScript(fakeSources, { micError, blocked });
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Record', exact: true })).toBeVisible();
 }
@@ -74,12 +76,38 @@ test('the radio plays a preset and changes station', async ({ page }) => {
   await expect(status(page)).toHaveText('FM, preset 1, off');
   await page.getByRole('button', { name: /^Preset 2:/ }).click();
   await expect(status(page)).toHaveText('FM, preset 2');
-  await expect(line(page)).toHaveText('The Current, Minneapolis');
+  await expect(line(page)).toHaveText('The Current, Minneapolis MN');
   await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-pressed', 'true');
   await key(page, 'Next station').click();
-  await expect(page.locator('.big')).toHaveText('90.3');
+  await expect(page.locator('.big')).toHaveText(STATIONS[stationAt(89.3) + 1].freq.toFixed(1));
+  await expect(status(page)).toHaveText('FM');
+  await key(page, 'Previous station').click();
+  await expect(page.locator('.big')).toHaveText('89.3');
   await key(page, 'Stop').click();
-  await expect(status(page)).toHaveText('FM, preset 3, off');
+  await expect(status(page)).toHaveText('FM, preset 2, off');
+});
+
+test('Next seeks up the dial to a station that does not allow recording, and Record says so', async ({ page }) => {
+  await openDeck(page);
+  await key(page, 'Play').click();
+  for (let i = stationAt(88.3); i < stationAt(91.1); i++) await key(page, 'Next station').click();
+  await expect(page.locator('.big')).toHaveText('91.1');
+  await expect(line(page)).toHaveText('WFMU, Jersey City NJ');
+  await key(page, 'Record').click();
+  await expect(status(page)).toHaveText("Recording isn't allowed on this station.");
+  await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
+  await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'RADIO' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a station that blocks taping when Record is pressed shows the same message and keeps playing', async ({ page }) => {
+  await openDeck(page, { blocked: STATIONS[stationAt(90.3)].url });
+  await page.getByRole('button', { name: /^Preset 3:/ }).click();
+  await expect(status(page)).toHaveText('FM, preset 3');
+  await key(page, 'Record').click();
+  await expect(status(page)).toHaveText("Recording isn't allowed on this station.");
+  await expect(page.locator('.big')).toHaveText('90.3');
+  await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('records a voice note, then plays it from the shelf', async ({ page, browserName }) => {

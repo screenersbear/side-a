@@ -1,5 +1,5 @@
 // Everything the deck screen shows, worked out from the deck's state: words, numbers and which keys are down.
-import { STATIONS, freqText, dialPercent } from './stations.js';
+import { STATIONS, freqText, dialPercent, presetNumber, PRESET_FREQS, stationAt } from './stations.js';
 import { mmss } from './tape-names.js';
 
 function statusText(s, isTape) {
@@ -9,11 +9,13 @@ function statusText(s, isTape) {
     return s.playing ? 'Tape, playing' : 'Tape, stopped';
   }
   if (s.tuning) return 'Tuning in';
-  return s.playing ? `FM, preset ${s.station + 1}` : `FM, preset ${s.station + 1}, off`;
+  const preset = presetNumber(s.station);
+  const where = preset ? `FM, preset ${preset}` : 'FM';
+  return s.playing ? where : `${where}, off`;
 }
 
 function lineText(s, isTape, station) {
-  if (!isTape) return `${station.name}, ${station.place}`;
+  if (!isTape) return station.place ? `${station.name}, ${station.place}` : station.name;
   if (s.recording) return s.source === 'mic' ? 'Mic to side A' : `Taping ${freqText(station.freq)} FM`;
   if (s.draft) return 'Saving the tape';
   return s.tape ? s.tape.title : 'Blank tape';
@@ -54,10 +56,9 @@ export function deckView(s) {
     dialLabel: `Tuned to ${freqText(station.freq)} FM`,
     rewLabel: isTape ? 'Rewind' : 'Previous station',
     ffLabel: isTape ? 'Fast forward' : 'Next station',
-    presets: STATIONS.map((st, i) => ({
-      n: i + 1,
-      on: !isTape && i === s.station,
-      label: `Preset ${i + 1}: ${freqText(st.freq)} ${st.name}`,
-    })),
+    presets: PRESET_FREQS.map((f, i) => {
+      const at = stationAt(f);
+      return { n: i + 1, on: !isTape && at === s.station, label: `Preset ${i + 1}: ${freqText(f)} ${STATIONS[at].name}` };
+    }),
   };
 }

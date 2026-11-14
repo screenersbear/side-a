@@ -29,10 +29,18 @@ export function tapeSeconds(seconds) {
   return Math.max(1, Math.round(s));
 }
 
+// Shown when Record is pressed on a station that doesn't allow recording.
+export const NOT_ALLOWED = "Recording isn't allowed on this station.";
+
 // Plain words for why recording couldn't start.
 export function recordError(error, source) {
   const name = (error && error.name) || '';
-  if (source === 'line') return name === 'AbortError' ? '' : "Couldn't reach the station.";
+  if (source === 'line') {
+    if (name === 'AbortError') return '';
+    // The station plays but its stream can't be fetched: it doesn't allow recording in a browser.
+    if (name === 'TypeError') return NOT_ALLOWED;
+    return "Couldn't reach the station.";
+  }
   if (name === 'NotAllowedError' || name === 'SecurityError') return 'Mic is off. Allow it for SIDE A in Settings.';
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No mic found.';
   if (name === 'NotReadableError') return 'The mic is busy in another app.';

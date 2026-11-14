@@ -15,7 +15,8 @@
     "test:lighthouse": "lhci autorun --config=lighthouserc.cjs",
     "test:quick": "npm run test:unit && playwright test --config playwright.config.mjs tests/e2e --project=desktop-chrome",
     "test:all": "npm run test:unit && npm run test:mutation && npm run test:e2e && npm run test:perf && npm run test:lighthouse",
-    "test:report": "playwright show-report reports/playwright"
+    "test:report": "playwright show-report reports/playwright",
+    "check-stations": "node tools/check-stations.mjs"
   },
   "devDependencies": {
     "@lhci/cli": "^0.16.1",

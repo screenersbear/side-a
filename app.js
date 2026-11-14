@@ -3,6 +3,7 @@
 import { startState, deckReducer } from './logic/deck.js';
 import { deckView } from './logic/deck-view.js';
 import { soundPlan } from './logic/sound-plan.js';
+import { STATIONS } from './logic/stations.js';
 import { screenFor, hashFor } from './logic/routes.js';
 import { loadSettings, saveSettings } from './data/settings.js';
 import { listTapes, newestTape } from './data/tapes.js';
@@ -21,7 +22,7 @@ function dispatch(action) {
   state = next;
   // Sound first, in the same tap, so phones let it play.
   carryOut(soundPlan(prev, next, action.type));
-  if (next.station !== prev.station || next.source !== prev.source) saveSettings(next);
+  if (next.station !== prev.station || next.source !== prev.source) saveSettings({ freq: STATIONS[next.station].freq, source: next.source });
   deck.update(deckView(next));
   if (action.type === 'saved' && screenFor(location.hash) === 'shelf') refreshShelf();
 }

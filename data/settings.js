@@ -1,4 +1,4 @@
-// Small things the deck remembers between visits: the last station and the record source.
+// Small things the deck remembers between visits: the last station (its frequency) and the record source.
 const KEY = 'side-a.settings';
 
 export function loadSettings(storage = globalThis.localStorage) {
@@ -13,7 +13,7 @@ export function loadSettings(storage = globalThis.localStorage) {
 
 export function saveSettings(state, storage = globalThis.localStorage) {
   try {
-    storage.setItem(KEY, JSON.stringify({ station: state.station, source: state.source }));
+    storage.setItem(KEY, JSON.stringify({ freq: state.freq, source: state.source }));
     return true;
   } catch {
     return false;

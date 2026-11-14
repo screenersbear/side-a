@@ -8,7 +8,11 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
 
 - `logic/`: pure rules, 100% unit tested. `deck.js` is the deck's state and what every button does; `sound-plan.js`
   turns a state change into steps for the speakers and recorder; `deck-view.js` is what the screen shows;
-  `stations.js` the four presets; `shelf.js` filters and labels; `recording.js` formats and error words.
+  `stations.js` the dial (Next/Previous seek station to station, no manual tuning) and the four presets;
+  `shelf.js` filters and labels; `recording.js` formats and error words.
+- `data/stations.js`: every station on the dial, one real US station per FM frequency (73, from Radio Browser,
+  checked 2026-11-14). `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
+  on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
 - `data/`: `tapes.js` (IndexedDB; the sound is stored as bytes, not a Blob, so Safari private mode works) and
   `settings.js` (last station and record source).
 - `audio/`: `radio.js` (audio element on the stream), `tape-player.js`, `recorder.js` (mic via MediaRecorder; radio by
@@ -16,8 +20,8 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
 - `pages/` deck and shelf; `components/` cassette (true 1004 x 638 geometry), keys, tuner, level bars; `styles/`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
-- Stations must send `Access-Control-Allow-Origin` or taping them fails. Check with
-  `curl -s -o /dev/null -D - -H "Origin: https://example.test" <url>` before adding one.
+- `npm run check-stations` checks every station is streaming and whether it allows taping (needs the station to send
+  `Access-Control-Allow-Origin`). Node rejects some certificates browsers accept (98.5 today): check those in a browser.
 
 ## Testing SIDE A
 

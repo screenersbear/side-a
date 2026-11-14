@@ -11,25 +11,25 @@ function memory() {
 }
 
 describe('saveSettings', () => {
-  it('keeps only the station and the record source', () => {
+  it('keeps only the station frequency and the record source', () => {
     const store = memory();
-    expect(saveSettings({ station: 2, source: 'line', playing: true }, store)).toBe(true);
-    expect(JSON.parse(store.data['side-a.settings'])).toEqual({ station: 2, source: 'line' });
+    expect(saveSettings({ freq: 90.3, source: 'line', playing: true }, store)).toBe(true);
+    expect(JSON.parse(store.data['side-a.settings'])).toEqual({ freq: 90.3, source: 'line' });
   });
   it('says so when storage is full or blocked', () => {
     const full = { setItem: () => { throw new Error('quota'); } };
-    expect(saveSettings({ station: 1, source: 'mic' }, full)).toBe(false);
+    expect(saveSettings({ freq: 89.3, source: 'mic' }, full)).toBe(false);
   });
   it('says so when there is no storage', () => {
-    expect(saveSettings({ station: 1, source: 'mic' }, null)).toBe(false);
+    expect(saveSettings({ freq: 89.3, source: 'mic' }, null)).toBe(false);
   });
 });
 
 describe('loadSettings', () => {
   it('reads back what was saved', () => {
     const store = memory();
-    saveSettings({ station: 3, source: 'line' }, store);
-    expect(loadSettings(store)).toEqual({ station: 3, source: 'line' });
+    saveSettings({ freq: 98.9, source: 'line' }, store);
+    expect(loadSettings(store)).toEqual({ freq: 98.9, source: 'line' });
   });
   it('is empty the first time', () => {
     expect(loadSettings(memory())).toEqual({});
@@ -54,7 +54,7 @@ describe('loadSettings', () => {
 describe('the browser storage default', () => {
   beforeEach(() => localStorage.clear());
   it('uses localStorage when none is given', () => {
-    expect(saveSettings({ station: 1, source: 'mic' })).toBe(true);
-    expect(loadSettings()).toEqual({ station: 1, source: 'mic' });
+    expect(saveSettings({ freq: 89.3, source: 'mic' })).toBe(true);
+    expect(loadSettings()).toEqual({ freq: 89.3, source: 'mic' });
   });
 });

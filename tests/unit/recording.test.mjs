@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RECORD_TYPES, pickRecordType, MIN_SECONDS, worthKeeping, tapeSeconds, recordError, radioError } from '../../logic/recording.js';
+import { RECORD_TYPES, pickRecordType, MIN_SECONDS, worthKeeping, tapeSeconds, recordError, radioError, NOT_ALLOWED } from '../../logic/recording.js';
 
 describe('pickRecordType', () => {
   it('prefers MP4, which plays on iPhones too', () => {
@@ -74,8 +74,12 @@ describe('recordError', () => {
     expect(recordError(err('NotSupportedError'), 'mic')).toBe("This browser can't record.");
     expect(recordError(null, 'mic')).toBe("This browser can't record.");
   });
-  it('says the station could not be reached when taping the radio', () => {
-    expect(recordError(err('TypeError'), 'line')).toBe("Couldn't reach the station.");
+  it('says recording is not allowed when the station blocks its stream', () => {
+    expect(NOT_ALLOWED).toBe("Recording isn't allowed on this station.");
+    expect(recordError(err('TypeError'), 'line')).toBe(NOT_ALLOWED);
+  });
+  it('says the station could not be reached for other taping problems', () => {
+    expect(recordError(err('NetworkError'), 'line')).toBe("Couldn't reach the station.");
     expect(recordError(null, 'line')).toBe("Couldn't reach the station.");
   });
   it('says nothing when taping the radio was stopped on purpose', () => {

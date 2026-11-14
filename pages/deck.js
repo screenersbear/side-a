@@ -5,7 +5,7 @@ import { createCassette } from '../components/cassette.js';
 import { createTransport, createSwitch, createPresets } from '../components/controls.js';
 import { createTuner } from '../components/tuner.js';
 import { createLevelBars } from '../components/level-bars.js';
-import { STATIONS } from '../logic/stations.js';
+import { PRESET_FREQS } from '../logic/stations.js';
 
 export function createDeckPage(dispatch) {
   const send = (type, extra) => dispatch({ type, ...extra });
@@ -27,7 +27,7 @@ export function createDeckPage(dispatch) {
   const line = el('span', { class: 'line', 'aria-live': 'polite' });
   const source = createSwitch('Record from', [{ id: 'mic', text: 'MIC' }, { id: 'line', text: 'RADIO IN' }], (id) => send(id === 'mic' ? 'toMic' : 'toLine'));
   const tuner = createTuner();
-  const presets = createPresets(STATIONS.length, (index) => send('preset', { index }));
+  const presets = createPresets(PRESET_FREQS.length, (key) => send('preset', { key }));
   const mode = createSwitch('Mode', [{ id: 'radio', text: 'RADIO' }, { id: 'tape', text: 'TAPE' }], (id) => send(id === 'radio' ? 'toRadio' : 'toTape'));
 
   const panel = el(

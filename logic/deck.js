@@ -1,24 +1,27 @@
 // The deck: what state it's in, and what each button and event does to it.
 // Pure functions only (no sound, no screen), so every rule here is easy to test.
 // The sound follows the state: see sound-plan.js.
-import { STATIONS, stepStation, isStation } from './stations.js';
+import { STATIONS, stepStation, stationAt, presetStation, canTape } from './stations.js';
 import { tapeTitle } from './tape-names.js';
+import { NOT_ALLOWED } from './recording.js';
 
 // Rewind and fast forward jump this many seconds.
 export const SKIP_SECONDS = 10;
 
-// The deck when the app opens: radio, quiet (phones don't let sound start on its own).
+// The deck when the app opens: radio, quiet (phones don't let sound start on its own),
+// on the last station listened to (saved as its frequency), or preset 1.
 export function startState(saved = {}) {
   const s = saved || {};
+  const last = stationAt(s.freq);
   return {
     mode: 'radio', // 'radio' or 'tape'
     playing: false, // sound on: radio, a tape, or recording
     recording: false,
     tuning: false, // radio pressed, waiting for the station to start
     source: s.source === 'line' ? 'line' : 'mic', // what Record tapes in tape mode: the mic or the radio
-    station: isStation(s.station) ? s.station : 0,
+    station: last >= 0 ? last : presetStation(0),
     tape: null, // the tape in the deck: { id, kind, title, duration, created, blob }
-    draft: null, // the tape being recorded or saved: { kind, title }
+    draft: null, // the tape being recorded or saved: { kind, title, from: the mode Record was pressed in }
     pos: 0, // seconds: where the tape is, or how long the recording is
     notice: '', // a short message that replaces the status line
   };
@@ -45,8 +48,9 @@ function tune(s, station) {
 function record(s, now) {
   if (s.recording) return s;
   const source = s.mode === 'radio' ? 'line' : s.source;
+  if (source === 'line' && !canTape(STATIONS[s.station])) return { ...s, notice: NOT_ALLOWED };
   const kind = source === 'mic' ? 'voice' : 'radio';
-  const draft = { kind, title: tapeTitle(kind, STATIONS[s.station], now) };
+  const draft = { kind, title: tapeTitle(kind, STATIONS[s.station], now), from: s.mode };
   return { ...s, mode: 'tape', recording: true, playing: true, tuning: false, source, draft, pos: 0, notice: '' };
 }
 
@@ -72,8 +76,10 @@ function wind(s, direction) {
   return pos === s.pos ? s : { ...s, pos };
 }
 
-function pickPreset(s, index) {
-  if (!isStation(index)) return s;
+// A preset key (0 to 3) tunes to its station.
+function pickPreset(s, key) {
+  const index = presetStation(key);
+  if (index < 0) return s;
   if (s.mode === 'radio' && s.playing && s.station === index) return s;
   return tune(s, index);
 }
@@ -128,6 +134,16 @@ function lost(s, message) {
   return { ...s, playing: false, recording: false, tuning: false, notice: message || 'No signal.' };
 }
 
+// The station wouldn't let its stream be taped. Back to how the deck was: the radio keeps playing if it was on.
+function refused(s, message) {
+  if (!s.draft) return s;
+  const fromRadio = s.draft.from === 'radio';
+  return {
+    ...s, mode: fromRadio ? 'radio' : 'tape', playing: fromRadio && s.playing, recording: false, draft: null,
+    notice: message || NOT_ALLOWED,
+  };
+}
+
 // Recording couldn't start (no mic, mic not allowed): nothing to save.
 function fail(s, message) {
   return { ...s, playing: false, recording: false, tuning: false, draft: null, notice: message || 'Something went wrong.' };
@@ -140,7 +156,7 @@ export function deckReducer(s, action = {}) {
     case 'stop': return stop(s);
     case 'rew': return wind(s, -1);
     case 'ff': return wind(s, 1);
-    case 'preset': return pickPreset(s, action.index);
+    case 'preset': return pickPreset(s, action.key);
     case 'toRadio': return toRadio(s);
     case 'toTape': return toTape(s);
     case 'toMic': return setSource(s, 'mic');
@@ -155,6 +171,7 @@ export function deckReducer(s, action = {}) {
     case 'live': return s.tuning ? { ...s, tuning: false } : s;
     case 'lost': return lost(s, action.message);
     case 'fail': return fail(s, action.message);
+    case 'refused': return refused(s, action.message);
     default: return s;
   }
 }

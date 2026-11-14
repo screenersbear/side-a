@@ -1,8 +1,9 @@
 // The Boombox look: a pink boombox. A dark bar across the top (SIDE A, tuning dial, readout), the cassette
-// behind a rounded door on the left, the dot speaker, presets, keys and switches on the right.
+// behind a rounded door on the left, the dot speaker, presets, the song playing, keys and switches on the right.
 // Styles: styles/look-boombox.css. Its moving part is the speaker.
 import { el } from '../../components/el.js';
 import { createSpeaker } from '../../components/speaker.js';
+import { icon } from '../../components/icons.js';
 
 export const BOOMBOX_PARTS = {};
 
@@ -12,8 +13,7 @@ export function createBoomboxLook(p) {
   const bar = el(
     'div',
     { class: 'bar' },
-    // The mockup has no room for the station or song line; it sits under SIDE A here.
-    el('div', { class: 'brand-block' }, el('span', { class: 'brand', 'aria-hidden': 'true' }, 'SIDE A'), p.line),
+    el('span', { class: 'brand', 'aria-hidden': 'true' }, 'SIDE A'),
     p.tuner.node,
     el('div', { class: 'readout' }, el('div', { class: 'big-row' }, p.big, p.unit), p.status),
   );
@@ -31,6 +31,8 @@ export function createBoomboxLook(p) {
     'div',
     { class: 'panel' },
     el('div', { class: 'top' }, speaker, p.presets.node),
+    // The song playing, under the speaker (the station and preset are in the readout up top).
+    el('div', { class: 'now' }, icon('note'), p.line),
     p.transport.node,
     el('div', { class: 'mode-row' }, p.mode.node, p.source.node),
     el('div', { class: 'links' }, p.shelfLink, p.settingsLink),

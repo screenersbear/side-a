@@ -1,4 +1,4 @@
-// Reads a station's now-playing text every 20 seconds while it's being taped. The source for each station is
+// Reads a station's now-playing text every 20 seconds while it plays. The source for each station is
 // in data/stations.js (`titles`); logic/now-playing.js says where to look and how to read the answer.
 import { titleSource, icyTitle, icecastTitle, kexpTitle } from '../logic/now-playing.js';
 

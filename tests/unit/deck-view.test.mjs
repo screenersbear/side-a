@@ -18,21 +18,29 @@ describe('deckView on the radio', () => {
     const v = deckView(fresh({ station: KEXP, playing: true }));
     expect(v).toMatchObject({
       isRadio: true, isTape: false, big: '90.3', unit: 'MHz', counter: '',
-      status: 'FM, preset 3', line: 'KEXP, Seattle WA', dialLabel: 'Tuned to 90.3 FM',
+      status: 'KEXP, preset 3', line: '', dialLabel: 'Tuned to 90.3 FM',
       rewLabel: 'Previous station', ffLabel: 'Next station',
     });
     expect(v.needle).toBeCloseTo(11.5, 5);
   });
   it('says when the radio is off or tuning in', () => {
-    expect(deckView(fresh()).status).toBe('FM, preset 1, off');
+    expect(deckView(fresh()).status).toBe('WBGO Jazz, preset 1, off');
     expect(deckView(fresh({ playing: true, tuning: true })).status).toBe('Tuning in');
   });
-  it('a station that is not a preset just says FM', () => {
-    expect(deckView(fresh({ station: WFMU, playing: true }))).toMatchObject({ status: 'FM', line: 'WFMU, Jersey City NJ', big: '91.1' });
-    expect(deckView(fresh({ station: WFMU })).status).toBe('FM, off');
+  it('a station that is not a preset just gives its name', () => {
+    expect(deckView(fresh({ station: WFMU, playing: true }))).toMatchObject({ status: 'WFMU', big: '91.1' });
+    expect(deckView(fresh({ station: WFMU })).status).toBe('WFMU, off');
   });
-  it('a station with no town shows just its name', () => {
-    expect(deckView(fresh({ station: stationAt(97.3) })).line).toBe('The Rock');
+  it('the second line is the song the station names, while it plays', () => {
+    const song = { artist: 'The Paper Lanterns', title: 'Night Swim' };
+    const on = fresh({ station: KEXP, playing: true, heard: { station: KEXP, song } });
+    expect(deckView(on).line).toBe('Night Swim · The Paper Lanterns');
+    expect(deckView({ ...on, heard: { station: KEXP, song: { artist: '', title: 'Morning Edition' } } }).line).toBe('Morning Edition');
+    // Nothing between songs, from another station, before anything is heard, or with the radio off.
+    expect(deckView({ ...on, heard: { station: KEXP, song: null } }).line).toBe('');
+    expect(deckView({ ...on, heard: { station: KUTX, song } }).line).toBe('');
+    expect(deckView({ ...on, heard: null }).line).toBe('');
+    expect(deckView({ ...on, playing: false }).line).toBe('');
   });
   it('lights the playing preset only', () => {
     const v = deckView(fresh({ station: CURRENT }));
@@ -41,7 +49,7 @@ describe('deckView on the radio', () => {
     expect(v.presets[0].label).toBe('Preset 1: 88.3 WBGO Jazz');
     expect(v.presets[3].label).toBe('Preset 4: 98.9 KUTX');
     expect(deckView(fresh({ station: WFMU })).presets.some((p) => p.on)).toBe(false);
-    expect(deckView(fresh({ station: KUTX })).status).toBe('FM, preset 4, off');
+    expect(deckView(fresh({ station: KUTX })).status).toBe('KUTX, preset 4, off');
     expect(deckView(fresh({ station: WBGO })).presets[0].on).toBe(true);
   });
   it('keys: Play down while playing, Stop down while stopped', () => {
@@ -68,7 +76,7 @@ describe('deckView on tape', () => {
   it('a radio tape with song titles names the song at the counter', () => {
     const songs = [{ at: 0, artist: 'The Paper Lanterns', title: 'Night Swim' }, { at: 60, artist: '', title: 'Station break' }];
     const radioTape = { ...TAPE, kind: 'radio', songs };
-    expect(deckView(tape({ tape: radioTape, pos: 30 })).line).toBe('Night Swim, The Paper Lanterns');
+    expect(deckView(tape({ tape: radioTape, pos: 30 })).line).toBe('Night Swim · The Paper Lanterns');
     expect(deckView(tape({ tape: radioTape, pos: 61 })).line).toBe('Station break');
     expect(deckView(tape({ tape: { ...radioTape, songs: [{ at: 5, artist: 'A', title: 'B' }] }, pos: 2 })).line).toBe('Nov 14, 9:41 PM');
   });

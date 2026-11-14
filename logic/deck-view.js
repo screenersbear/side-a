@@ -11,12 +11,20 @@ function statusText(s, isTape) {
   }
   if (s.tuning) return 'Tuning in';
   const preset = presetNumber(s.station);
-  const where = preset ? `FM, preset ${preset}` : 'FM';
+  const name = STATIONS[s.station].name;
+  const where = preset ? `${name}, preset ${preset}` : name;
   return s.playing ? where : `${where}, off`;
 }
 
+// The song the station says it's playing, while it plays. Empty when it sends nothing.
+function nowPlaying(s) {
+  const heard = s.heard;
+  if (!s.playing || !heard || heard.station !== s.station || !heard.song) return '';
+  return songLine(heard.song);
+}
+
 function lineText(s, isTape, station) {
-  if (!isTape) return station.place ? `${station.name}, ${station.place}` : station.name;
+  if (!isTape) return nowPlaying(s);
   if (s.recording) return s.source === 'mic' ? 'Mic to side A' : `Taping ${freqText(station.freq)} FM`;
   if (s.draft) return 'Saving the tape';
   if (!s.tape) return 'Blank tape';

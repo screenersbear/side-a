@@ -4,6 +4,7 @@
 import { STATIONS, stepStation, stationAt, presetStation, canTape } from './stations.js';
 import { tapeTitle } from './tape-names.js';
 import { NOT_ALLOWED } from './recording.js';
+import { parseNowPlaying } from './songs.js';
 
 // Rewind and fast forward jump this many seconds.
 export const SKIP_SECONDS = 10;
@@ -24,6 +25,7 @@ export function startState(saved = {}) {
     draft: null, // the tape being recorded or saved: { kind, title, from: the mode Record was pressed in }
     pos: 0, // seconds: where the tape is, or how long the recording is
     notice: '', // a short message that replaces the status line
+    heard: null, // the song a station last named: { station, song: { artist, title } or null between songs }
   };
 }
 
@@ -46,7 +48,8 @@ function tune(s, station) {
 }
 
 function record(s, now) {
-  if (s.recording) return s;
+  // Record again while recording stops it, the same as Stop.
+  if (s.recording) return stop(s);
   const source = s.mode === 'radio' ? 'line' : s.source;
   if (source === 'line' && !canTape(STATIONS[s.station])) return { ...s, notice: NOT_ALLOWED };
   const kind = source === 'mic' ? 'voice' : 'radio';
@@ -152,8 +155,20 @@ function fail(s, message) {
   return { ...s, playing: false, recording: false, tuning: false, draft: null, notice: message || 'Something went wrong.' };
 }
 
+// A station named what it's playing (or sent a break message, or nothing: no song). Shown while it plays.
+function heard(s, station, text) {
+  const song = parseNowPlaying(text);
+  if (s.heard && s.heard.station === station && sameSong(s.heard.song, song)) return s;
+  return { ...s, heard: { station, song } };
+}
+
+function sameSong(a, b) {
+  return a === b || Boolean(a && b && a.artist === b.artist && a.title === b.title);
+}
+
 export function deckReducer(s, action = {}) {
   switch (action.type) {
+    case 'heard': return heard(s, action.station, action.text);
     case 'rec': return record(s, action.now);
     case 'play': return play(s);
     case 'stop': return stop(s);

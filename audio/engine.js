@@ -6,7 +6,7 @@ import { startMic, startLine, measureSeconds } from './recorder.js';
 import { watchTitles } from './now-playing.js';
 import { recordError, radioError, worthKeeping, tapeSeconds } from '../logic/recording.js';
 import { addSong } from '../logic/songs.js';
-import { STATIONS, stationAt } from '../logic/stations.js';
+import { STATIONS } from '../logic/stations.js';
 import { saveTape } from '../data/tapes.js';
 
 export function createEngine(dispatch) {
@@ -20,13 +20,32 @@ export function createEngine(dispatch) {
     onFail: (message) => dispatch({ type: 'fail', message }),
   });
   let job = null; // the recording in progress
+  let titles = null; // reads the playing station's song titles
+  let lastText = null; // the last one read
 
   function seconds(j) {
     return j.startedAt ? (performance.now() - j.startedAt) / 1000 : 0;
   }
 
+  // While the radio plays: show each song the station names, and note it on the tape when the radio is taped
+  // (with the second it started on the tape).
+  function listen(station) {
+    hangUp();
+    titles = watchTitles(STATIONS[station], (text) => {
+      lastText = text;
+      dispatch({ type: 'heard', station, text });
+      if (job && job.line && job.startedAt) job.songs = addSong(job.songs, seconds(job), text);
+    });
+  }
+
+  function hangUp() {
+    if (titles) titles.stop();
+    titles = null;
+    lastText = null;
+  }
+
   function startRecording(step) {
-    const j = { draft: step.draft, startedAt: 0, timer: 0, session: null, stopped: false, songs: [], titles: null };
+    const j = { draft: step.draft, line: step.source === 'line', startedAt: 0, timer: 0, session: null, stopped: false, songs: [] };
     job = j;
     const onEnd = () => dispatch({ type: 'stop' });
     const start = step.source === 'line' ? startLine({ radio, onEnd }) : startMic({ onEnd });
@@ -36,10 +55,8 @@ export function createEngine(dispatch) {
         if (j.stopped) return;
         j.startedAt = performance.now();
         j.timer = setInterval(() => dispatch({ type: 'tick', pos: seconds(j) }), 250);
-        // Taping the radio: note each song as the station names it, with the second it started on the tape.
-        if (step.source === 'line') {
-          j.titles = watchTitles(STATIONS[stationAt(j.draft.freq)], (text) => { j.songs = addSong(j.songs, seconds(j), text); });
-        }
+        // Taping the radio: the tape starts with the song already playing.
+        if (j.line && lastText !== null) j.songs = addSong(j.songs, 0, lastText);
       },
       (error) => {
         if (job === j) job = null;
@@ -55,7 +72,6 @@ export function createEngine(dispatch) {
     if (!j) return;
     j.stopped = true;
     clearInterval(j.timer);
-    if (j.titles) j.titles.stop();
     const length = seconds(j);
     await j.ready;
     if (!j.session) return dispatch({ type: 'unsaved', message: '' });
@@ -73,8 +89,14 @@ export function createEngine(dispatch) {
   }
 
   const run = {
-    'radio.play': (st) => radio.play(st.url, st.tapeable),
-    'radio.stop': () => radio.stop(),
+    'radio.play': (st) => {
+      radio.play(st.url, st.tapeable);
+      listen(st.station);
+    },
+    'radio.stop': () => {
+      radio.stop();
+      hangUp();
+    },
     'tape.load': (st) => tape.load(st.blob),
     'tape.play': (st) => tape.play(st.pos),
     'tape.pause': () => tape.pause(),

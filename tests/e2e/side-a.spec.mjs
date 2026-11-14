@@ -99,18 +99,20 @@ test.beforeEach(async ({}, info) => {
 
 test('the radio plays a preset and changes station', async ({ page }) => {
   await openDeck(page);
-  await expect(status(page)).toHaveText('FM, preset 1, off');
+  await expect(status(page)).toHaveText('WBGO Jazz, preset 1, off');
   await page.getByRole('button', { name: /^Preset 2:/ }).click();
-  await expect(status(page)).toHaveText('FM, preset 2');
-  await expect(line(page)).toHaveText('The Current, Minneapolis MN');
+  await expect(status(page)).toHaveText('The Current, preset 2');
+  // The Current sends no song titles, so the song line stays empty.
+  await expect(line(page)).toHaveText('');
   await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-pressed', 'true');
   await key(page, 'Next station').click();
-  await expect(page.locator('.big')).toHaveText(STATIONS[stationAt(89.3) + 1].freq.toFixed(1));
-  await expect(status(page)).toHaveText('FM');
+  const next = STATIONS[stationAt(89.3) + 1];
+  await expect(page.locator('.big')).toHaveText(next.freq.toFixed(1));
+  await expect(status(page)).toHaveText(next.name);
   await key(page, 'Previous station').click();
   await expect(page.locator('.big')).toHaveText('89.3');
   await key(page, 'Stop').click();
-  await expect(status(page)).toHaveText('FM, preset 2, off');
+  await expect(status(page)).toHaveText('The Current, preset 2, off');
 });
 
 test('Next seeks up the dial to a station that does not allow recording, and Record says so', async ({ page }) => {
@@ -118,7 +120,7 @@ test('Next seeks up the dial to a station that does not allow recording, and Rec
   await key(page, 'Play').click();
   for (let i = stationAt(88.3); i < stationAt(91.1); i++) await key(page, 'Next station').click();
   await expect(page.locator('.big')).toHaveText('91.1');
-  await expect(line(page)).toHaveText('WFMU, Jersey City NJ');
+  await expect(status(page)).toHaveText('WFMU');
   await key(page, 'Record').click();
   await expect(status(page)).toHaveText("Recording isn't allowed on this station.");
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
@@ -129,7 +131,7 @@ test('Next seeks up the dial to a station that does not allow recording, and Rec
 test('a station that blocks taping when Record is pressed shows the same message and keeps playing', async ({ page }) => {
   await openDeck(page, { blocked: STATIONS[stationAt(90.3)].url });
   await page.getByRole('button', { name: /^Preset 3:/ }).click();
-  await expect(status(page)).toHaveText('FM, preset 3');
+  await expect(status(page)).toHaveText('KEXP, preset 3');
   await key(page, 'Record').click();
   await expect(status(page)).toHaveText("Recording isn't allowed on this station.");
   await expect(page.locator('.big')).toHaveText('90.3');
@@ -168,7 +170,9 @@ test('tapes the radio and files it under Radio', async ({ page }) => {
   await expect(line(page)).toHaveText('Taping 88.3 FM');
   await expect(page.locator('.big')).not.toHaveText('00:00', { timeout: 5000 });
   await page.waitForTimeout(600);
-  await key(page, 'Stop').click();
+  // Record again stops it, the same as Stop.
+  await key(page, 'Record').click();
+  await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
   await expect(line(page)).toHaveText(/^88\.3 WBGO Jazz, /);
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();
@@ -188,11 +192,17 @@ test('taping a station that names its songs puts the song on the tape', async ({
   await openDeck(page);
   test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
   await page.getByRole('button', { name: /^Preset 3:/ }).click();
+  // The deck shows the song while the station plays, in every look.
+  await expect(status(page)).toHaveText('KEXP, preset 3');
+  await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
+  await pickLook(page, 'Boombox');
+  await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
+  await expect(page.locator('.look-boombox .now .icon')).toBeVisible();
   await key(page, 'Record').click();
   await expect(line(page)).toHaveText('Taping 90.3 FM');
   await page.waitForTimeout(1200);
   await key(page, 'Stop').click();
-  await expect(line(page)).toHaveText('Night Swim, The Paper Lanterns');
+  await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();
   await expect(page.getByRole('button', { name: /^Play 90\.3, Night Swim by The Paper Lanterns: Taped from radio/ })).toHaveCount(1);
@@ -250,9 +260,9 @@ test('Settings changes the look, and the deck keeps it after a reload', async ({
 test('changing the look keeps the radio playing', async ({ page }) => {
   await openDeck(page);
   await page.getByRole('button', { name: /^Preset 2:/ }).click();
-  await expect(status(page)).toHaveText('FM, preset 2');
+  await expect(status(page)).toHaveText('The Current, preset 2');
   await pickLook(page, 'Boombox');
-  await expect(status(page)).toHaveText('FM, preset 2');
+  await expect(status(page)).toHaveText('The Current, preset 2');
   await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
 });
@@ -270,8 +280,8 @@ for (const look of ['Deck', 'Sport', 'Boombox']) {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.getByRole('button', { name: /^Preset 2:/ }).click();
-    await expect(status(page)).toHaveText('FM, preset 2');
-    await expect(line(page)).toHaveText('The Current, Minneapolis MN');
+    await expect(status(page)).toHaveText('The Current, preset 2');
+    await expect(line(page)).toHaveText('');
     await expect(movingPart(page)).toHaveCount(1);
     await key(page, 'Stop').click();
     await expect(movingPart(page)).toHaveCount(0);

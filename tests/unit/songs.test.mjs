@@ -74,7 +74,7 @@ describe('addSong', () => {
 
 describe('songLine', () => {
   it('names the song and the artist', () => {
-    expect(songLine({ artist: 'The Paper Lanterns', title: 'Night Swim' })).toBe('Night Swim, The Paper Lanterns');
+    expect(songLine({ artist: 'The Paper Lanterns', title: 'Night Swim' })).toBe('Night Swim · The Paper Lanterns');
   });
   it('just the title when there is no artist', () => {
     expect(songLine({ artist: '', title: 'Morning Edition' })).toBe('Morning Edition');

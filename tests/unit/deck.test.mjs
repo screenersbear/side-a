@@ -21,7 +21,7 @@ describe('startState', () => {
   it('opens on the radio, quiet, preset 1, mic', () => {
     expect(fresh()).toEqual({
       mode: 'radio', playing: false, recording: false, tuning: false, source: 'mic',
-      station: WBGO, tape: null, draft: null, pos: 0, notice: '',
+      station: WBGO, tape: null, draft: null, pos: 0, notice: '', heard: null,
     });
   });
   it('remembers the last station (by frequency) and record source', () => {
@@ -77,9 +77,12 @@ describe('Record', () => {
     expect(s.tape).toBe(TAPE);
     expect(s.notice).toBe('');
   });
-  it('does nothing while already recording', () => {
+  it('pressed again while recording, stops it, the same as Stop', () => {
     const s = run(tapeIn(), { type: 'rec', now: NOW });
-    expect(deckReducer(s, { type: 'rec', now: NOW + 5000 })).toBe(s);
+    const again = deckReducer(s, { type: 'rec', now: NOW + 5000 });
+    expect(again).toEqual(deckReducer(s, { type: 'stop' }));
+    expect(again).toMatchObject({ recording: false, playing: false });
+    expect(again.draft).toBe(s.draft);
   });
   it('on a station that does not allow it, just says so and keeps playing', () => {
     const before = { ...radioPlaying(), station: WFMU };
@@ -400,6 +403,33 @@ describe('Fail', () => {
   });
   it('has a fallback message', () => {
     expect(run(fresh(), 'fail').notice).toBe('Something went wrong.');
+  });
+});
+
+describe('Heard (the song a station names)', () => {
+  const heard = (station, text) => ({ type: 'heard', station, text });
+  const NIGHT_SWIM = { artist: 'The Paper Lanterns', title: 'Night Swim' };
+  it('keeps the song with its station', () => {
+    const s = run(radioPlaying(), heard(KEXP, 'The Paper Lanterns - Night Swim'));
+    expect(s.heard).toEqual({ station: KEXP, song: NIGHT_SWIM });
+  });
+  it('a break message or nothing is no song', () => {
+    expect(run(radioPlaying(), heard(KEXP, "We'll be right back")).heard).toEqual({ station: KEXP, song: null });
+    expect(run(radioPlaying(), heard(KEXP, '')).heard).toEqual({ station: KEXP, song: null });
+  });
+  it('the same song again changes nothing', () => {
+    const s = run(radioPlaying(), heard(KEXP, 'The Paper Lanterns - Night Swim'));
+    expect(deckReducer(s, heard(KEXP, ' The Paper Lanterns -  Night Swim '))).toBe(s);
+    const quiet = run(radioPlaying(), heard(KEXP, ''));
+    expect(deckReducer(quiet, heard(KEXP, 'Be right back'))).toBe(quiet);
+  });
+  it('a new song, a new artist, a break or another station replaces it', () => {
+    const s = run(radioPlaying(), heard(KEXP, 'The Paper Lanterns - Night Swim'));
+    expect(deckReducer(s, heard(KEXP, 'The Paper Lanterns - Low Tide')).heard.song.title).toBe('Low Tide');
+    expect(deckReducer(s, heard(KEXP, 'June Avenue - Night Swim')).heard.song.artist).toBe('June Avenue');
+    expect(deckReducer(s, heard(KEXP, '')).heard).toEqual({ station: KEXP, song: null });
+    expect(run(s, heard(KEXP, ''), heard(KEXP, 'The Paper Lanterns - Night Swim')).heard.song).toEqual(NIGHT_SWIM);
+    expect(deckReducer(s, heard(WFMU, 'The Paper Lanterns - Night Swim')).heard).toEqual({ station: WFMU, song: NIGHT_SWIM });
   });
 });
 

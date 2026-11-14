@@ -24,9 +24,9 @@ export function addSong(songs, at, text) {
   return [...list, { at: Math.max(0, Math.round(Number(at) || 0)), ...song }];
 }
 
-// One song in words: "Night Swim, The Paper Lanterns", or just the title.
+// One song in words: "Night Swim · The Paper Lanterns", or just the title.
 export function songLine(song) {
-  return song.artist ? `${song.title}, ${song.artist}` : song.title;
+  return song.artist ? `${song.title} · ${song.artist}` : song.title;
 }
 
 // The song playing at second `at` of a tape, or null.

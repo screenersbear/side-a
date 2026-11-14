@@ -12,8 +12,9 @@ function radioSteps(prev, next) {
   const was = radioOn(prev);
   if (on && (!was || next.station !== prev.station)) {
     // tapeable: ask the station to share its sound with the app (CORS), so Record can tape what plays.
+    // station: which one, so the engine can read the song titles it sends.
     const station = STATIONS[next.station];
-    return [{ do: 'radio.play', url: station.url, tapeable: canTape(station) }];
+    return [{ do: 'radio.play', url: station.url, tapeable: canTape(station), station: next.station }];
   }
   if (!on && was) return [{ do: 'radio.stop' }];
   return [];

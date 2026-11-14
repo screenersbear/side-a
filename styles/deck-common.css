@@ -37,6 +37,8 @@
 .deck .status, .deck .line { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Messages like "Recording isn't allowed on this station." wrap rather than lose their end. */
 .deck .status { white-space: normal; }
+/* The song line keeps its room when a station sends no song, so nothing jumps when one arrives. */
+.deck .line { min-height: 1.2em; min-height: 1lh; }
 .deck .big-row { display: flex; align-items: baseline; gap: 6px; }
 .deck .big { font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .deck .unit { font-size: 12px; font-weight: 500; }

@@ -11,7 +11,7 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   turns a state change into steps for the speakers and recorder; `deck-view.js` is what the screen shows;
   `stations.js` the dial (Next/Previous seek station to station, no manual tuning) and the four presets;
   `shelf.js` filters and labels; `recording.js` formats and error words; `songs.js` and `now-playing.js` the song
-  titles kept on radio tapes; `looks.js` the four looks and their colours; `routes.js` which screen (#/shelf, #/settings).
+  titles shown while a station plays and kept on radio tapes; `looks.js` the four looks and their colours; `routes.js` which screen (#/shelf, #/settings).
 - `data/stations.js`: every station on the dial, one real US station per FM frequency (73, from Radio Browser,
   checked 2026-11-14). `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
   on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
@@ -20,13 +20,15 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
 - `audio/`: `radio.js` (audio element on the stream; tapeable stations are asked to share their sound, crossOrigin,
   and fall back to playing plain if they refuse), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
   with call clean-up off, or the radio as it plays, element -> Web Audio -> MediaStreamDestination, from the moment REC
-  is pressed; Starky 2026-11-14: never a second connection), `now-playing.js` (while taping, reads the station's
-  song title every 20 s: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
+  is pressed; Starky 2026-11-14: never a second connection), `now-playing.js` (while the radio plays, reads the station's
+  song title every 20 s; one reading feeds both the deck's second line and a radio tape's songs: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
   Icecast server's status-json.xsl, "kexp" = KEXP's feed; 14 of 73 stations have one), `engine.js` runs the steps.
 - `pages/`: `deck.js` builds the deck in the picked look: the parts are the same in every look
   (`components/deck-parts.js`), each look in `pages/looks/` only arranges them and adds its moving part (Pocket level
   bars, Deck meters, Sport EQ, Boombox speaker; all CSS, off with reduce motion). `shelf.js`, `settings.js`.
   Changing the look rebuilds the deck screen; the deck's state and the sound carry on.
+  On the radio every look shows "<station>, preset N" and, when the station names it, "<song> · <artist>"
+  (Boombox: under the speaker, with a note). Record pressed again while recording stops it, the same as Stop.
 - Mixes (Starky, 2026-11-14: "keep it this simple"): New mix on the shelf -> `#/mix` (`pages/mix.js`, the
   timeline) and `#/clip` (`pages/clip.js`, a tape and its start/end handles); `pages/mixing.js` holds the mix in
   progress. Rules in `logic/mix.js` (cut at the red line, remove, None / Fade in 1.5 s), `logic/trim.js`,

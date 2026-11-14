@@ -23,11 +23,11 @@ const tapeIn = (extra = {}) => ({ ...fresh(), mode: 'tape', tape: TAPE, ...extra
 
 describe('soundPlan: radio', () => {
   it('Play starts the station', () => {
-    expect(plan(fresh(), 'play')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO].url, tapeable: true }]);
+    expect(plan(fresh(), 'play')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO].url, tapeable: true, station: WBGO }]);
   });
   it('a new station replaces the old one', () => {
-    expect(plan(radio(WBGO), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO + 1].url, tapeable: true }]);
-    expect(plan(radio(WBGO), { type: 'preset', key: 2 })).toEqual([{ do: 'radio.play', url: STATIONS[KEXP].url, tapeable: true }]);
+    expect(plan(radio(WBGO), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[WBGO + 1].url, tapeable: true, station: WBGO + 1 }]);
+    expect(plan(radio(WBGO), { type: 'preset', key: 2 })).toEqual([{ do: 'radio.play', url: STATIONS[KEXP].url, tapeable: true, station: KEXP }]);
   });
   it('Stop stops the radio', () => {
     expect(plan(radio(), 'stop')).toEqual([{ do: 'radio.stop' }]);
@@ -42,11 +42,11 @@ describe('soundPlan: radio', () => {
   it('taping the radio from tape mode turns the radio on', () => {
     const steps = plan(tapeIn({ source: 'line', station: KEXP }), { type: 'rec', now: NOW });
     expect(steps.map((s) => s.do)).toEqual(['rec.start', 'radio.play']);
-    expect(steps[1].url).toBe(STATIONS[KEXP].url);
+    expect(steps[1]).toMatchObject({ url: STATIONS[KEXP].url, station: KEXP });
   });
   it('a station that does not allow taping plays without asking it to share its sound', () => {
     const WFMU = stationAt(91.1);
-    expect(plan(radio(WFMU - 1), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[WFMU].url, tapeable: false }]);
+    expect(plan(radio(WFMU - 1), 'ff')).toEqual([{ do: 'radio.play', url: STATIONS[WFMU].url, tapeable: false, station: WFMU }]);
   });
 });
 

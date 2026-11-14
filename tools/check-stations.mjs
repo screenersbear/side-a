@@ -29,7 +29,13 @@ async function check(station) {
   }
 }
 
-const results = await Promise.all([...STATION_LIST, ...WORLD_LIST].map(check));
+// A few at a time: 87 streams opened at once share the connection and the far ones time out.
+const AT_ONCE = 12;
+const queue = [...STATION_LIST, ...WORLD_LIST];
+const results = [];
+await Promise.all(Array.from({ length: AT_ONCE }, async () => {
+  while (queue.length) results.push(await check(queue.shift()));
+}));
 const dead = results.filter((r) => !r.live);
 const wrongFlag = results.filter((r) => r.live && r.tapes !== (r.station.tape !== false));
 for (const r of dead) console.log(`not streaming: ${r.station.freq} ${r.station.name}, ${r.why}  ${r.station.url}`);

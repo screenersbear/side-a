@@ -1,0 +1,56 @@
+/* The shelf popup for choosing a clip's tape (components/tape-picker.js): a paper card like the tape menu, the shelf's
+   filters, and the tapes in rows, each with a Listen key (mango while it plays, and the cassette's reels turn). */
+
+.tape-picker {
+  border: 0; padding: 0; margin: auto; background: transparent; color: var(--ink);
+  max-width: calc(100vw - 32px); max-height: calc(100dvh - 16px); overflow: visible;
+}
+.tape-picker::backdrop { background: rgba(41, 50, 58, .78); }
+
+.pk-card {
+  position: relative; display: flex; flex-direction: column; gap: 4px;
+  width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 30px);
+  padding: 14px 56px 12px 22px; background: var(--paper); box-shadow: inset 0 2px 0 #FFFFFF, 0 6px 0 var(--shell);
+}
+.pk-top { display: flex; align-items: center; gap: 6px 16px; flex-wrap: wrap; }
+.pk-title {
+  margin: 0; font-size: 18px; font-weight: 900; font-stretch: 115%; line-height: 1.15; text-transform: uppercase;
+  white-space: nowrap;
+}
+.tape-picker .chip { color: var(--ink); }
+.tape-picker .chip.on { background: var(--ink); color: var(--paper); text-decoration: none; }
+.pk-hint, .pk-empty { margin: 0; font-size: 12px; font-weight: 500; }
+
+.pk-grid {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); align-content: start; gap: 12px 16px;
+  padding: 8px 3px 4px;
+}
+.pk-tape { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tape-picker .pk-use {
+  border: 0; border-radius: 0; padding: 0; margin: 0; background: transparent; color: var(--ink); cursor: pointer;
+  text-align: left; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.pk-use .cassette { max-width: 164px; }
+
+.tape-picker .pk-listen {
+  align-self: flex-start; border: 0; border-radius: 0; margin: 0; min-height: 44px; padding: 0 10px 0 0; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; background: transparent; color: var(--ink); white-space: nowrap;
+  text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px;
+}
+.pk-listen .icon { display: flex; }
+.tape-picker .pk-listen.on { padding: 0 12px; background: var(--mango); box-shadow: 0 3px 0 #B89600; text-decoration: none; }
+
+.tape-picker .pk-close {
+  position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 0; border-radius: 0; padding: 0;
+  background: transparent; color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.pk-close .icon { display: flex; }
+
+.tape-picker button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.tape-picker .pk-listen.on:focus-visible { outline-color: var(--cobalt); }
+
+@media (max-height: 400px) {
+  .pk-card { padding: 10px 52px 8px 16px; }
+  .pk-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 14px; }
+}

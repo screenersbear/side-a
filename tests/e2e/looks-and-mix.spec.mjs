@@ -72,19 +72,41 @@ test('makes a mixtape: two clips, a cut, a piece removed, a fade in, saved to th
   await expect(page.getByText('No clips yet.')).toBeVisible();
   await expect(page.getByRole('button', { name: /save mixtape/i })).toBeDisabled();
 
-  // The radio tape (the newest, picked first), its end brought in by 2 seconds.
-  await page.getByRole('link', { name: /add clip/i }).click();
+  // Add clip opens the shelf as a popup. A tape can be heard first (Listen: it counts up, Stop ends it), then
+  // tapped to use it: the radio tape, its end brought in by 2 seconds.
+  await page.getByRole('button', { name: /add clip/i }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose a tape' });
+  await expect(picker).toBeVisible();
+  const listen = picker.getByRole('button', { name: 'Listen to 90.3 KEXP, Nov 14' });
+  await listen.click();
+  await expect(listen).toHaveAttribute('aria-pressed', 'true');
+  await expect(listen).toHaveText('Stop');
+  await expect(picker.getByText(/^00:0[1-9] of 00:10$/)).toBeVisible({ timeout: 5000 });
+  await listen.click();
+  await expect(listen).toHaveAttribute('aria-pressed', 'false');
+  await expect(listen).toHaveText('Listen');
+  await picker.getByRole('button', { name: /^Use 90\.3 KEXP, Nov 14/ }).click();
+  await expect(picker).toBeHidden();
   await expect(page.getByRole('heading', { name: 'Add a clip' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '90.3 KEXP, Nov 14' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.clip-tape')).toHaveText('90.3 KEXP, Nov 14');
   await expect(page.locator('.clip-range')).toHaveText('0:00 to 0:10');
   await page.getByRole('button', { name: 'Move end earlier' }).click();
   await page.getByRole('button', { name: 'Move end earlier' }).click();
   await expect(page.locator('.clip-range')).toHaveText('0:00 to 0:08');
   await page.getByRole('button', { name: /add to mix/i }).click();
 
-  // The whole voice note.
-  await page.getByRole('link', { name: /add clip/i }).click();
-  await page.getByRole('button', { name: 'Note to self' }).click();
+  // The whole voice note: closing the popup without choosing goes back to the mix; then Change tape on the clip
+  // screen swaps the tape (the radio tape first, then the voice note).
+  await page.getByRole('button', { name: /add clip/i }).click();
+  await expect(picker).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(picker).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'New mix' })).toBeVisible();
+  await page.getByRole('button', { name: /add clip/i }).click();
+  await picker.getByRole('button', { name: /^Use 90\.3 KEXP, Nov 14/ }).click();
+  await page.getByRole('button', { name: 'Change tape' }).click();
+  await picker.getByRole('button', { name: /^Use Note to self/ }).click();
+  await expect(page.locator('.clip-tape')).toHaveText('Note to self');
   await expect(page.locator('.clip-range')).toHaveText('0:00 to 0:06');
   await page.getByRole('button', { name: /add to mix/i }).click();
 

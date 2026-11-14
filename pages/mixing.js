@@ -1,14 +1,19 @@
 // The two mix screens (pages/mix.js, pages/clip.js) and what they share: the mix being made, the tapes it's cut
-// from, playing it to hear where to cut, and saving it to the shelf as one mixtape. New mix starts it afresh.
+// from, the shelf popup a clip's tape is chosen in (and heard first), playing the mix to hear where to cut, and
+// saving it to the shelf as one mixtape. New mix starts it afresh.
 import { emptyMix, addClip, selectClip, removeSelected, toggleJoin, setLine, cutAtLine, mixPlan, mixLength, dropTape } from '../logic/mix.js';
 import { startTrim, setEdge, moveEdge, peaks } from '../logic/trim.js';
-import { filterTapes, tapeCard } from '../logic/shelf.js';
+import { tapeCard } from '../logic/shelf.js';
 import { tapeTitle } from '../logic/tape-names.js';
 import { tapeSeconds } from '../logic/recording.js';
 import { listTapes, saveTape } from '../data/tapes.js';
 import { decodeTape, playMix, renderMix } from '../audio/mixdown.js';
+import { createTapePlayer } from '../audio/tape-player.js';
+import { createTapePicker } from '../components/tape-picker.js';
 import { createMixPage } from './mix.js';
 import { createClipPage } from './clip.js';
+
+const noPart = () => ({ tape: null, trim: startTrim(0), levels: null, reading: false, failed: false });
 
 // onSaved(tape): the mixtape is on the shelf. quiet(): stop the deck, so the mix can be heard alone.
 export function createMixing({ onSaved, quiet }) {
@@ -17,10 +22,10 @@ export function createMixing({ onSaved, quiet }) {
   let preview = null;
   let saving = false;
   let note = '';
-  let part = { tape: null, trim: startTrim(0), levels: null, reading: false, failed: false };
+  let part = noPart();
 
   const drawMix = () => mixPage.show(mix, { playing: Boolean(preview), saving, note });
-  const drawPart = () => clipPage.show({ tapeId: part.tape ? part.tape.id : null, ...part });
+  const drawPart = () => clipPage.show(part);
 
   function stopPlay() {
     if (!preview) return;
@@ -79,6 +84,7 @@ export function createMixing({ onSaved, quiet }) {
     remove: () => change(removeSelected(mix)),
     play: togglePlay,
     save,
+    addClip: () => openPicker(),
   });
 
   // Reads the picked tape's sound for the waveform; the whole tape is selected to start with.
@@ -99,8 +105,50 @@ export function createMixing({ onSaved, quiet }) {
     );
   }
 
+  // Listening to a tape in the shelf popup: one at a time, with the deck and the mix quiet.
+  let hearing = null;
+  const ear = createTapePlayer({
+    onTime: (t) => hearing && hearing.onTime(t),
+    onEnded: () => hearing && hearing.onEnd(),
+    onFail: () => hearing && hearing.onEnd(),
+  });
+  const picker = createTapePicker({
+    player: {
+      listen(tape, onTime, onEnd) {
+        stopPlay();
+        quiet();
+        hearing = { onTime, onEnd };
+        ear.load(tape.blob);
+        ear.play(0);
+      },
+      hush() {
+        hearing = null;
+        ear.pause();
+      },
+    },
+    onPick: (tape) => {
+      pickTape(tape);
+      location.hash = '#/clip';
+    },
+    // Closed on the clip screen with no tape chosen yet: back to the mix.
+    onClose: (picked) => {
+      if (!picked && location.hash === '#/clip' && !part.tape) location.hash = '#/mix';
+    },
+  });
+
+  function openPicker() {
+    stopPlay();
+    listTapes().then(
+      (list) => {
+        tapes = list;
+        picker.open(list);
+      },
+      () => picker.open([]),
+    );
+  }
+
   const clipPage = createClipPage({
-    pickTape,
+    change: openPicker,
     drag: (edge, t) => { part = { ...part, trim: setEdge(part.trim, edge, t) }; drawPart(); },
     step: (edge, steps) => { part = { ...part, trim: moveEdge(part.trim, edge, steps) }; drawPart(); },
     add: () => {
@@ -111,7 +159,7 @@ export function createMixing({ onSaved, quiet }) {
   });
 
   return {
-    nodes: [mixPage.node, clipPage.node],
+    nodes: [mixPage.node, clipPage.node, picker.node],
     mixNode: mixPage.node,
     clipNode: clipPage.node,
     // A tape was deleted from the shelf: it leaves the mix, and the clip screen if it was picked there.
@@ -119,7 +167,7 @@ export function createMixing({ onSaved, quiet }) {
       const next = dropTape(mix, id);
       if (next !== mix) change(next);
       tapes = tapes.filter((t) => t.id !== id);
-      if (part.tape && part.tape.id === id) part = { tape: null, trim: startTrim(0), levels: null, reading: false, failed: false };
+      if (part.tape && part.tape.id === id) part = noPart();
     },
     // New mix (from the shelf): an empty mix.
     fresh() {
@@ -131,21 +179,26 @@ export function createMixing({ onSaved, quiet }) {
       drawMix();
       listTapes().then((list) => { tapes = list; }, () => {});
     },
+    // The clip screen: the tape chosen, or the shelf popup to choose one.
     showClip() {
       listTapes().then(
         (list) => {
           tapes = list;
-          const shown = filterTapes(list, 'all');
-          clipPage.showTapes(shown);
-          const keep = part.tape && shown.find((t) => t.id === part.tape.id);
-          if (keep) drawPart();
-          else if (shown.length) pickTape(shown[0]);
-          else drawPart();
+          if (part.tape && list.some((t) => t.id === part.tape.id)) return drawPart();
+          part = noPart();
+          drawPart();
+          picker.open(list);
         },
-        () => clipPage.showTapes([]),
+        () => {
+          drawPart();
+          picker.open([]);
+        },
       );
     },
-    // Leaving the mix screens stops the sound.
-    leave: stopPlay,
+    // Leaving the mix screen stops the sound; leaving both closes the shelf popup.
+    leave() {
+      stopPlay();
+      if (location.hash !== '#/clip') picker.close();
+    },
   };
 }

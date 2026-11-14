@@ -59,14 +59,18 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   (`components/hold.js`: finger, mouse, or Enter/Space held) saves the station on the dial there and shows
   "Saved to preset N" for 2 s. On tape a hold is just a tap.
 - Mixes (Starky, 2026-11-14: "keep it this simple"): New mix on the shelf -> `#/mix` (`pages/mix.js`, the
-  timeline) and `#/clip` (`pages/clip.js`, a tape and its start/end handles); `pages/mixing.js` holds the mix in
-  progress. Rules in `logic/mix.js` (cut at the red line, remove, None / Fade in 1.5 s), `logic/trim.js`,
+  timeline) and `#/clip` (`pages/clip.js`, the chosen tape and its start/end handles); `pages/mixing.js` holds the mix in
+  progress. Add clip (and Change tape) opens the shelf as a popup, `components/tape-picker.js` (Starky, 2026-11-14):
+  the shelf's filters, every tape with a Listen key to hear it first (its own player; the reels turn, the meta counts
+  "00:03 of 00:10"), and tapping a tape uses it. Closed without choosing on the clip screen with no tape yet, it goes
+  back to the mix. It opens after the shelf list loads, so tests wait for it before pressing Escape. Rules in `logic/mix.js` (cut at the red line, remove, None / Fade in 1.5 s), `logic/trim.js`,
   `logic/mix-layout.js` (pixels <-> seconds). `audio/mixdown.js` decodes tapes, plays the mix (Web Audio) and
   renders it (OfflineAudioContext) into one WAV (`logic/wav.js`, 44.1 kHz stereo, about 10 MB a minute).
 - `components/`: cassette (true 1004 x 638 geometry; `bandBig` for the Deck look), keys, tuner, the moving parts.
 - `styles/`: `deck-common.css` (what every look shares), one `look-*.css` per look (colours and sizes from the
   mockup's `Skin*.dc.html` at 844 x 390, scaling with the phone), `shelf.css`, `tape-menu.css` (no mockup: built from
-  DESIGN.md, paper card on the dark shelf, Control keys, one mango key), `settings.css`, `mix.css`.
+  DESIGN.md, paper card on the dark shelf, Control keys, one mango key), `tape-picker.css` (the same card, Listen keys
+  underlined, mango while playing), `settings.css`, `mix.css`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
 - `npm run check-stations` checks every station is streaming and whether it allows taping (needs the station to send

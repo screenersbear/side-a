@@ -104,7 +104,7 @@ export function createMixPage(on) {
       el('span', { class: 'mix-in-all' }, 'in all'),
       save,
     ),
-    el('div', { class: 'mix-tools' }, el('a', { class: 'tool control', href: '#/clip' }, icon('plus'), 'Add clip'), play, cut, remove, hint),
+    el('div', { class: 'mix-tools' }, el('button', { class: 'tool control', type: 'button', 'aria-haspopup': 'dialog', onclick: on.addClip }, icon('plus'), 'Add clip'), play, cut, remove, hint),
     el('div', { class: 'mix-body' }, empty, scroller),
   );
 

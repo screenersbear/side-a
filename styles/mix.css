@@ -73,9 +73,12 @@
 /* Adding a clip. */
 .step { margin: 0; font-size: 12px; font-weight: 500; }
 .step b { font-weight: 800; font-stretch: 115%; letter-spacing: .06em; margin-right: 8px; }
-.tape-chips { display: flex; gap: 4px; overflow-x: auto; flex: 0 0 auto; -webkit-overflow-scrolling: touch; }
-.tape-chips .chip { white-space: nowrap; flex: 0 0 auto; }
-.clip-screen .chip.on { background: var(--paper); color: var(--ink); text-decoration: none; }
+/* Step 1: the tape chosen in the shelf popup, and Change tape. */
+.clip-which { display: flex; align-items: center; gap: 4px 14px; min-width: 0; flex: 0 0 auto; }
+.clip-tape {
+  min-width: 0; font-size: 13px; font-weight: 900; font-stretch: 115%; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .clip-note { margin: 0; font-size: 12px; font-weight: 500; }
 
 .waveform { position: relative; height: min(112px, 26dvh); display: flex; align-items: center; gap: 3px; touch-action: none; cursor: pointer; flex: 0 0 auto; margin-top: 4px; }

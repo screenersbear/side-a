@@ -34,6 +34,7 @@ export function createDeckLook(p) {
     { class: 'panel' },
     el('div', { class: 'readout' }, p.status, el('div', { class: 'big-row' }, p.big, p.unit), p.line),
     p.tuner.node,
+    p.wheel.node,
     p.presets.node,
     el('div', { class: 'links' }, p.shelfLink, p.settingsLink),
   );

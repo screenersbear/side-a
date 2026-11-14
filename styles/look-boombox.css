@@ -103,3 +103,9 @@
 .look-boombox .mode-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .look-boombox .seg { padding: 0 8px; font-size: 11px; }
 .look-boombox .seg.on { background: var(--ink); color: var(--salmon); box-shadow: 0 3px 0 #12171B; }
+
+/* The tuning knob at the right end of the top bar. */
+.look-boombox .tw-knob {
+  --w-base: var(--salmon); --w-ridge: var(--ink); --w-hi: rgba(255, 255, 255, .6); --w-shade: rgba(184, 96, 91, .7);
+  --w-edge: #12171B; --w-mark: var(--ink);
+}

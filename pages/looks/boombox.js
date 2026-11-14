@@ -5,7 +5,7 @@ import { el } from '../../components/el.js';
 import { createSpeaker } from '../../components/speaker.js';
 import { icon } from '../../components/icons.js';
 
-export const BOOMBOX_PARTS = {};
+export const BOOMBOX_PARTS = { wheel: 'knob' };
 
 export function createBoomboxLook(p) {
   const speaker = createSpeaker();
@@ -16,6 +16,7 @@ export function createBoomboxLook(p) {
     el('span', { class: 'brand', 'aria-hidden': 'true' }, 'SIDE A'),
     p.tuner.node,
     el('div', { class: 'readout' }, el('div', { class: 'big-row' }, p.big, p.unit), p.status),
+    p.wheel.node,
   );
 
   const bay = el(

@@ -8,6 +8,7 @@ import { screenFor, hashFor } from './logic/routes.js';
 import { lookFor } from './logic/looks.js';
 import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadClicks, saveClicks } from './data/settings.js';
 import { clickFor } from './logic/key-clicks.js';
+import { lockedOn } from './logic/dial.js';
 import { listTapes, newestTape, renameTape, deleteTape } from './data/tapes.js';
 import { shareFile } from './data/share.js';
 import { createEngine } from './audio/engine.js';
@@ -28,6 +29,9 @@ let state = startState({ ...loadSettings(), presets: loadPresets() });
 let carryOut = () => {};
 let showLock = () => {};
 const awake = createStayAwake();
+// Keys click like a real deck's (Settings can turn it off).
+const clicks = createKeyClicks();
+let clicksOn = loadClicks();
 
 function dispatch(action) {
   const next = deckReducer(state, action);
@@ -36,6 +40,8 @@ function dispatch(action) {
   state = next;
   // Sound first, in the same tap, so phones let it play.
   carryOut(soundPlan(prev, next, action.type));
+  // The tuning wheel clicks softly as it locks onto a station.
+  if (action.type === 'dial' && clicksOn && lockedOn(prev, next)) clicks.play('tick');
   if (next.station !== prev.station || next.source !== prev.source) saveSettings({ freq: STATIONS[next.station].freq, source: next.source });
   if (next.presets !== prev.presets) savePresets(next.presets);
   // "Saved to preset 2" shows for a moment, then the status line comes back.
@@ -104,9 +110,7 @@ const shelf = createShelfPage({
 });
 const settings = createSettingsPage({ onPick: wearLook, onClicks: setClicks });
 
-// Keys click like a real deck's (Settings can turn it off): every key on the deck and in Settings.
-const clicks = createKeyClicks();
-let clicksOn = loadClicks();
+// Every key on the deck and in Settings clicks.
 function setClicks(on) {
   clicksOn = on;
   saveClicks(on);

@@ -6,10 +6,12 @@ import { createCassette } from './cassette.js';
 import { createTransport, createSwitch, createPresets } from './controls.js';
 import { createTuner } from './tuner.js';
 import { createTicker } from './ticker.js';
+import { createTuneWheel } from './tune-wheel.js';
 import { PRESET_FREQS } from '../logic/stations.js';
 
 // look: an entry of logic/looks.js. keys: options for the transport keys (order, class, Record symbol).
-export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape shelf' } = {}) {
+// wheel: the tuning wheel's kind in this look ('h', 'v' or 'knob').
+export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape shelf', wheel = 'h' } = {}) {
   const send = (type, extra) => dispatch({ type, ...extra });
 
   const parts = {
@@ -21,6 +23,7 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     line: el('span', { class: 'line', 'aria-live': 'polite' }),
     source: createSwitch('Record from', [{ id: 'mic', text: 'MIC' }, { id: 'line', text: 'RADIO IN' }], (id) => send(id === 'mic' ? 'toMic' : 'toLine')),
     tuner: createTuner(),
+    wheel: createTuneWheel(wheel, { onTune: (freq) => send('dial', { freq }), onStep: (step) => send('dial', { step }) }),
     presets: createPresets(PRESET_FREQS.length, { onPick: (key) => send('preset', { key }), onHold: (key) => send('savePreset', { key }) }),
     mode: createSwitch('Mode', [{ id: 'radio', text: 'RADIO' }, { id: 'tape', text: 'TAPE' }], (id) => send(id === 'radio' ? 'toRadio' : 'toTape')),
     shelfLink: el('a', { class: 'tk', href: '#/shelf' }, icon('shelf'), shelfText),
@@ -43,6 +46,7 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     parts.source.node.hidden = !v.isTape;
     parts.source.update(v.isMic ? 'mic' : 'line');
     parts.tuner.update(v);
+    parts.wheel.update(v.dial, v.dialText);
     parts.presets.update(v.presets);
     parts.mode.update(v.isTape ? 'tape' : 'radio');
   }

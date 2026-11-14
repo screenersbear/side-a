@@ -5,6 +5,7 @@ import { STATIONS, stepStation, stationAt, presetStation, cleanPresets, canTape 
 import { tapeTitle } from './tape-names.js';
 import { NOT_ALLOWED } from './recording.js';
 import { parseNowPlaying } from './songs.js';
+import { lockAt, stepDial, seekFrom, onDial, dialFreq, TUNE_FIRST } from './dial.js';
 
 // Rewind and fast forward jump this many seconds.
 export const SKIP_SECONDS = 10;
@@ -25,6 +26,7 @@ export function startState(saved = {}) {
     tuning: false, // radio pressed, waiting for the station to start
     source: s.source === 'line' ? 'line' : 'mic', // what Record tapes in tape mode: the mic or the radio
     station: last >= 0 ? last : presetStation(0, presets),
+    between: null, // the frequency the tuning wheel left the dial on, between stations (null: on the station)
     presets, // the four preset keys' frequencies
     tape: null, // the tape in the deck: { id, kind, title, duration, created, blob }
     draft: null, // the tape being recorded or saved: { kind, title, from: the mode Record was pressed in }
@@ -34,9 +36,9 @@ export function startState(saved = {}) {
   };
 }
 
-// Is the radio sounding? Yes in radio mode, and while taping the radio.
+// Is the radio sounding? Yes in radio mode, and while taping the radio; not between stations.
 export function radioOn(s) {
-  return s.playing && (s.mode === 'radio' || (s.recording && s.source === 'line'));
+  return s.playing && s.between === null && (s.mode === 'radio' || (s.recording && s.source === 'line'));
 }
 
 // Is a saved tape playing?
@@ -49,13 +51,14 @@ function hasSound(tape) {
 }
 
 function tune(s, station) {
-  return { ...s, mode: 'radio', station, playing: true, recording: false, tuning: true, notice: '' };
+  return { ...s, mode: 'radio', station, between: null, playing: true, recording: false, tuning: true, notice: '' };
 }
 
 function record(s, now) {
   // Record again while recording stops it, the same as Stop.
   if (s.recording) return stop(s);
   const source = s.mode === 'radio' ? 'line' : s.source;
+  if (source === 'line' && s.between !== null) return { ...s, notice: TUNE_FIRST };
   if (source === 'line' && !canTape(STATIONS[s.station])) return { ...s, notice: NOT_ALLOWED };
   const kind = source === 'mic' ? 'voice' : 'radio';
   const station = STATIONS[s.station];
@@ -67,7 +70,7 @@ function record(s, now) {
 
 function play(s) {
   if (s.recording) return s;
-  if (s.mode === 'radio') return s.playing ? s : { ...s, playing: true, tuning: true, notice: '' };
+  if (s.mode === 'radio') return s.playing ? s : { ...s, playing: true, tuning: s.between === null, notice: '' };
   if (!hasSound(s.tape)) return { ...s, playing: false, notice: 'Blank tape. Press record.' };
   const atEnd = s.pos >= s.tape.duration;
   return { ...s, playing: true, notice: '', pos: atEnd ? 0 : s.pos };
@@ -83,7 +86,7 @@ function stop(s) {
 // Rewind (-1) or fast forward (+1): changes station on the radio, winds the tape on tape.
 function wind(s, direction) {
   if (s.recording) return s;
-  if (s.mode === 'radio') return tune(s, stepStation(s.station, direction));
+  if (s.mode === 'radio') return tune(s, s.between === null ? stepStation(s.station, direction) : seekFrom(s.between, direction));
   if (!hasSound(s.tape)) return s;
   const pos = Math.min(s.tape.duration, Math.max(0, s.pos + direction * SKIP_SECONDS));
   return pos === s.pos ? s : { ...s, pos };
@@ -93,13 +96,24 @@ function wind(s, direction) {
 function pickPreset(s, key) {
   const index = presetStation(key, s.presets);
   if (index < 0) return s;
-  if (s.mode === 'radio' && s.playing && s.station === index) return s;
+  if (s.mode === 'radio' && s.playing && s.between === null && s.station === index) return s;
   return tune(s, index);
+}
+
+// The tuning wheel, dragged to `freq` or stepped by `step` (arrow keys). Within 0.2 MHz of a station it locks on
+// and plays it; between stations the radio goes quiet. Not while recording, like Next and Previous.
+function dial(s, { freq, step }) {
+  if (s.recording) return s;
+  const f = step ? stepDial(dialFreq(s), step) : onDial(freq);
+  const at = lockAt(f);
+  if (at >= 0) return s.mode === 'radio' && s.playing && s.between === null && s.station === at ? s : tune(s, at);
+  if (s.mode === 'radio' && s.playing && s.between === f) return s;
+  return { ...s, mode: 'radio', between: f, playing: true, tuning: false, notice: '' };
 }
 
 function toRadio(s) {
   if (s.mode === 'radio' && s.playing) return s;
-  return { ...s, mode: 'radio', recording: false, playing: true, tuning: true, notice: '' };
+  return { ...s, mode: 'radio', recording: false, playing: true, tuning: s.between === null, notice: '' };
 }
 
 function toTape(s) {
@@ -174,6 +188,7 @@ function heard(s, station, text) {
 function savePreset(s, key) {
   if (presetStation(key, s.presets) < 0) return s;
   if (s.mode !== 'radio') return pickPreset(s, key);
+  if (s.between !== null) return { ...s, notice: TUNE_FIRST };
   const freq = STATIONS[s.station].freq;
   return { ...s, presets: s.presets.map((f, i) => (i === key ? freq : f)), notice: savedText(key) };
 }
@@ -232,6 +247,7 @@ export function deckReducer(s, action = {}) {
     case 'rew': return wind(s, -1);
     case 'ff': return wind(s, 1);
     case 'preset': return pickPreset(s, action.key);
+    case 'dial': return dial(s, action);
     case 'savePreset': return savePreset(s, action.key);
     case 'calm': return calm(s, action.text);
     case 'hidden': return leftApp(s);

@@ -5,7 +5,7 @@
   --gap: 24px;
   --col: 260px;
   /* The cassette: as big as the phone allows, at its true 1.57:1. */
-  --bay-h: min(77dvh, calc((100vw - var(--pad-l) - var(--pad-r) - var(--gap) - var(--col)) / 1.5737), 560px);
+  --bay-h: min(77dvh, calc((100vw - var(--pad-l) - var(--pad-r) - 2 * var(--gap) - 34px - var(--col)) / 1.5737), 560px);
   background: var(--paper); color: var(--ink);
 }
 @media (max-width: 740px) {
@@ -60,6 +60,9 @@
   border-top: 1px solid var(--ink); padding-top: 1.33cqh;
   display: flex; justify-content: space-between; font-size: max(10px, 3.33cqh); font-weight: 500;
 }
+
+/* The thumbwheel stands between the window and the controls, about four fifths of the cassette's height. */
+.look-pocket .tw-v { height: calc(var(--bay-h) * 0.79); --w-base: #E3E8E4; }
 
 /* The controls column. */
 .look-pocket .panel {

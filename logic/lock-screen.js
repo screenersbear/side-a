@@ -4,10 +4,12 @@
 import { STATIONS, freqText } from './stations.js';
 import { KINDS } from './shelf.js';
 import { songAt } from './songs.js';
+import { SEARCHING } from './dial.js';
 
 const BRAND = 'SIDE A';
 
 function radioInfo(s) {
+  if (s.between !== null) return { title: SEARCHING, artist: `${freqText(s.between)} FM`, album: BRAND };
   const station = STATIONS[s.station];
   const where = station.place ? `${station.name}, ${station.place}` : station.name;
   const heard = s.playing && s.heard && s.heard.station === s.station ? s.heard.song : null;

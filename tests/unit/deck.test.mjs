@@ -21,7 +21,7 @@ describe('startState', () => {
   it('opens on the radio, quiet, preset 1, mic', () => {
     expect(fresh()).toEqual({
       mode: 'radio', playing: false, recording: false, tuning: false, source: 'mic',
-      station: WBGO, presets: PRESET_FREQS, tape: null, draft: null, pos: 0, notice: '', heard: null,
+      station: WBGO, between: null, presets: PRESET_FREQS, tape: null, draft: null, pos: 0, notice: '', heard: null,
     });
   });
   it('uses the presets saved on the phone, and starts on preset 1 when no station was saved', () => {

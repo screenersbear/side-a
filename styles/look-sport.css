@@ -111,8 +111,12 @@
   .look-sport .eq-equalizer { font-size: 11px; }
   .look-sport .big { font-size: 32px; }
   .look-sport .tune-box { gap: 6px; padding: 6px 10px; }
+  .look-sport .tw-h { height: 22px; }
 }
 .look-sport .tuner { height: 26px; }
+.look-sport .tw-h {
+  height: 26px; --w-base: var(--ink); --w-ridge: var(--cyan); --w-hi: rgba(255, 255, 255, .2); --w-shade: rgba(0, 0, 0, .4); --w-edge: #12171B;
+}
 .look-sport .tick-n { font-weight: 800; }
 .look-sport .needle { height: 18px; width: 5px; margin-left: -2.5px; }
 .look-sport .p { width: 48px; height: 44px; box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink); }

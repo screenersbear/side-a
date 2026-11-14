@@ -1,9 +1,10 @@
-// The Pocket look: paper body, the cassette seen through an oval window, a red pinstripe, controls on the right.
+// The Pocket look: paper body, the cassette seen through an oval window, a red pinstripe, a tall thumbwheel for
+// tuning by hand (like the WM-10's side wheel), controls on the right.
 // Styles: styles/look-pocket.css. Its moving part is the level bars over the window.
 import { el } from '../../components/el.js';
 import { createLevelBars } from '../../components/level-bars.js';
 
-export const POCKET_PARTS = { shelfText: 'Shelf' };
+export const POCKET_PARTS = { shelfText: 'Shelf', wheel: 'v' };
 
 export function createPocketLook(p) {
   const bay = el(
@@ -34,7 +35,7 @@ export function createPocketLook(p) {
     el('div', { class: 'stripe-off', 'aria-hidden': 'true' }),
     el('div', { class: 'stripe', 'aria-hidden': 'true' }),
     p.heading,
-    el('div', { class: 'deck-row' }, bay, panel),
+    el('div', { class: 'deck-row' }, bay, p.wheel.node, panel),
     p.edge,
   );
 

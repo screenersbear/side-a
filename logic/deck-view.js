@@ -2,6 +2,7 @@
 import { STATIONS, freqText, dialPercent, stationAt } from './stations.js';
 import { mmss } from './tape-names.js';
 import { songAt, songLine } from './songs.js';
+import { dialFreq, SEARCHING, STATIC_LINE } from './dial.js';
 
 function statusText(s, isTape) {
   if (s.notice) return s.notice;
@@ -9,6 +10,7 @@ function statusText(s, isTape) {
     if (s.recording) return 'Recording';
     return s.playing ? 'Tape, playing' : 'Tape, stopped';
   }
+  if (s.between !== null) return s.playing ? SEARCHING : 'FM, off';
   if (s.tuning) return 'Tuning in';
   // The station and where it is ("KEXP, Seattle WA"); the lit preset key already shows which preset it is.
   const station = STATIONS[s.station];
@@ -24,7 +26,7 @@ function nowPlaying(s) {
 }
 
 function lineText(s, isTape, station) {
-  if (!isTape) return nowPlaying(s);
+  if (!isTape) return s.between !== null && s.playing ? STATIC_LINE : nowPlaying(s);
   if (s.recording) return s.source === 'mic' ? 'Mic to side A' : `Taping ${freqText(station.freq)} FM`;
   if (s.draft) return 'Saving the tape';
   if (!s.tape) return 'Blank tape';
@@ -47,6 +49,7 @@ export function deckView(s) {
   const station = STATIONS[s.station];
   const isTape = s.mode === 'tape';
   const counter = mmss(s.pos);
+  const dial = dialFreq(s);
   return {
     isRadio: !isTape,
     isTape,
@@ -56,21 +59,25 @@ export function deckView(s) {
     isMic: s.source === 'mic',
     isLine: s.source === 'line',
     reelOn: s.playing && isTape,
-    sounding: s.playing,
-    big: isTape ? counter : freqText(station.freq),
+    // The look's moving part: while there's sound (not between stations).
+    sounding: s.playing && (isTape || s.between === null),
+    big: isTape ? counter : freqText(dial),
     unit: isTape ? '' : 'MHz',
     counter: isTape ? counter : '',
     status: statusText(s, isTape),
     line: lineText(s, isTape, station),
     tapeTitle: cassetteTitle(s),
     tapeLength: cassetteLength(s),
-    needle: dialPercent(station.freq),
-    dialLabel: `Tuned to ${freqText(station.freq)} FM`,
+    needle: dialPercent(dial),
+    dialLabel: `Tuned to ${freqText(dial)} FM`,
+    // The tuning wheel: where it is, and what a screen reader says about it.
+    dial,
+    dialText: `${freqText(dial)} FM, ${s.between === null ? station.name : 'between stations'}`,
     rewLabel: isTape ? 'Rewind' : 'Previous station',
     ffLabel: isTape ? 'Fast forward' : 'Next station',
     presets: s.presets.map((f, i) => {
       const at = stationAt(f);
-      return { n: i + 1, on: !isTape && at === s.station, label: `Preset ${i + 1}: ${freqText(f)} ${STATIONS[at].name}` };
+      return { n: i + 1, on: !isTape && s.between === null && at === s.station, label: `Preset ${i + 1}: ${freqText(f)} ${STATIONS[at].name}` };
     }),
   };
 }

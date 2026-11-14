@@ -26,7 +26,7 @@ export function createSportLook(p) {
     { class: 'panel' },
     eq,
     el('div', { class: 'readout' }, el('div', { class: 'big-row' }, p.big, p.unit), p.status, p.line),
-    el('div', { class: 'tune-box' }, p.tuner.node, p.presets.node),
+    el('div', { class: 'tune-box' }, p.tuner.node, p.wheel.node, p.presets.node),
     el('div', { class: 'links' }, p.shelfLink, p.settingsLink),
   );
 

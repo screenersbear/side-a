@@ -32,14 +32,21 @@ export function tapeSeconds(seconds) {
 // Shown when Record is pressed on a station that doesn't allow recording.
 export const NOT_ALLOWED = "Recording isn't allowed on this station.";
 
+// Tapes are recorded at about 192 kbps, so they sound like tape, not like a phone call.
+export const RECORD_BITRATE = 192000;
+
+// The mic as it is: the phone's call clean-up (echo cancelling, noise removal, automatic level) is off.
+export const MIC_SETTINGS = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+
 // Plain words for why recording couldn't start.
 export function recordError(error, source) {
   const name = (error && error.name) || '';
   if (source === 'line') {
     if (name === 'AbortError') return '';
-    // The station plays but its stream can't be fetched: it doesn't allow recording in a browser.
-    if (name === 'TypeError') return NOT_ALLOWED;
-    return "Couldn't reach the station.";
+    // The station plays but doesn't share its sound with the app (no CORS), so it can't be taped.
+    if (name === 'SecurityError') return NOT_ALLOWED;
+    if (name === 'NotSupportedError') return "This browser can't record.";
+    return "Couldn't tape this station.";
   }
   if (name === 'NotAllowedError' || name === 'SecurityError') return 'Mic is off. Allow it for SIDE A in Settings.';
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No mic found.';

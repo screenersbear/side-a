@@ -1,6 +1,6 @@
 // What the speakers and the recorder have to do when the deck changes from one state to the next.
 // Returns a list of steps, in order, for audio/engine.js to carry out. Pure, so it can be tested.
-import { STATIONS } from './stations.js';
+import { STATIONS, canTape } from './stations.js';
 import { radioOn, tapeOn } from './deck.js';
 
 function blobOf(s) {
@@ -10,7 +10,11 @@ function blobOf(s) {
 function radioSteps(prev, next) {
   const on = radioOn(next);
   const was = radioOn(prev);
-  if (on && (!was || next.station !== prev.station)) return [{ do: 'radio.play', url: STATIONS[next.station].url }];
+  if (on && (!was || next.station !== prev.station)) {
+    // tapeable: ask the station to share its sound with the app (CORS), so Record can tape what plays.
+    const station = STATIONS[next.station];
+    return [{ do: 'radio.play', url: station.url, tapeable: canTape(station) }];
+  }
   if (!on && was) return [{ do: 'radio.stop' }];
   return [];
 }
@@ -30,9 +34,7 @@ function tapeSteps(prev, next, actionType) {
 
 function recordSteps(prev, next) {
   if (next.recording && !prev.recording) {
-    const step = { do: 'rec.start', source: next.source, draft: next.draft };
-    if (next.source === 'line') step.url = STATIONS[next.station].url;
-    return [step];
+    return [{ do: 'rec.start', source: next.source, draft: next.draft }];
   }
   if (!next.recording && prev.recording) return [{ do: 'rec.stop' }];
   return [];

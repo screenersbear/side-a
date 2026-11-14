@@ -1,15 +1,15 @@
 // Recorders. Each start function resolves to a session with stop(), which resolves to the recording (a Blob),
 // and calls onEnd if the sound stops by itself (the mic is taken away, the station drops out).
-import { pickRecordType } from '../logic/recording.js';
+import { pickRecordType, RECORD_BITRATE, MIC_SETTINGS } from '../logic/recording.js';
 
-// The mic, through MediaRecorder.
-export async function startMic({ onEnd }) {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
-    throw Object.assign(new Error('no recorder'), { name: 'NotSupportedError' });
-  }
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+const notSupported = () => Object.assign(new Error('no recorder'), { name: 'NotSupportedError' });
+
+// Records a sound stream with MediaRecorder. release() runs once it has stopped (lets go of the mic or radio).
+function recordStream(stream, { onEnd, release }) {
   const mimeType = pickRecordType((t) => MediaRecorder.isTypeSupported(t));
-  const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+  const options = { audioBitsPerSecond: RECORD_BITRATE };
+  if (mimeType) options.mimeType = mimeType;
+  const recorder = new MediaRecorder(stream, options);
   const chunks = [];
   let stopping = false;
   recorder.addEventListener('dataavailable', (e) => {
@@ -25,7 +25,7 @@ export async function startMic({ onEnd }) {
       stopping = true;
       return new Promise((resolve) => {
         const finish = () => {
-          stream.getTracks().forEach((t) => t.stop());
+          release();
           resolve(new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/mp4' }));
         };
         if (recorder.state === 'inactive') return finish();
@@ -34,6 +34,22 @@ export async function startMic({ onEnd }) {
       });
     },
   };
+}
+
+// The mic, as it is (no call clean-up), so voice notes sound like tape.
+export async function startMic({ onEnd }) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+    throw notSupported();
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { ...MIC_SETTINGS } });
+  return recordStream(stream, { onEnd, release: () => stream.getTracks().forEach((t) => t.stop()) });
+}
+
+// The radio: records what the app is playing, from now. Throws SecurityError when the station doesn't share it.
+export async function startLine({ radio, onEnd }) {
+  if (typeof MediaRecorder === 'undefined') throw notSupported();
+  const tap = radio.tap();
+  return recordStream(tap.stream, { onEnd, release: tap.release });
 }
 
 // How long a recording really is, read from the file. Radio tapes run longer than the time spent taping,
@@ -54,37 +70,4 @@ export function measureSeconds(blob) {
     audio.addEventListener('error', () => finish(null), { once: true });
     audio.src = url;
   });
-}
-
-// The radio: keeps the station's own MP3 stream as it arrives, so the tape sounds exactly like the broadcast.
-export async function startStream({ url, onEnd }) {
-  const control = new AbortController();
-  const response = await fetch(url, { signal: control.signal, cache: 'no-store' });
-  if (!response.ok || !response.body) throw Object.assign(new Error('no stream'), { name: 'NetworkError' });
-  const type = (response.headers.get('content-type') || 'audio/mpeg').split(';')[0];
-  const reader = response.body.getReader();
-  const chunks = [];
-  let stopping = false;
-
-  const reading = (async () => {
-    try {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
-    } catch {
-      // Stopped on purpose, or the connection dropped: either way, keep what arrived.
-    }
-    if (!stopping) onEnd();
-  })();
-
-  return {
-    async stop() {
-      stopping = true;
-      control.abort();
-      await reading;
-      return new Blob(chunks, { type });
-    },
-  };
 }

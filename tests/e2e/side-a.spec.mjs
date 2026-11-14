@@ -1,5 +1,6 @@
 // SIDE A flows in a real browser: radio, recording a voice note, taping the radio, the shelf, the portrait prompt.
-// The stations and the mic are stand-ins (a short tone, a test signal), so these tests are silent and need no internet.
+// The mic is a test signal and every test is muted. In Chromium the stations are a stand-in tone; WebKit's media
+// requests skip Playwright's stand-ins, so there the real streams play (muted).
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
 
@@ -15,29 +16,13 @@ function toneWav(seconds = 20, rate = 8000) {
   return buf;
 }
 
-// In the page: muted sound, a test-signal mic, and station streams that keep arriving until stopped (for taping the radio).
-function fakeSources({ micError, blocked }) {
+// In the page: muted sound and a test-signal mic.
+function fakeSources({ micError }) {
   // Tests stay silent (Starky's rule: mute while testing the radio).
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function mutedPlay() {
     this.muted = true;
     return play.call(this);
-  };
-  const realFetch = window.fetch.bind(window);
-  window.fetch = (url, opts = {}) => {
-    if (!/^https:\/\//.test(String(url))) return realFetch(url, opts);
-    // A station that won't let its stream be read fails like a browser blocking it.
-    if (String(url) === blocked) return Promise.reject(new TypeError('Failed to fetch'));
-    const stream = new ReadableStream({
-      start(c) {
-        const t = setInterval(() => c.enqueue(new Uint8Array(2000)), 100);
-        opts.signal?.addEventListener('abort', () => {
-          clearInterval(t);
-          c.error(new DOMException('stopped', 'AbortError'));
-        });
-      },
-    });
-    return Promise.resolve(new Response(stream, { headers: { 'content-type': 'audio/mpeg' } }));
   };
   if (micError) {
     // WebKit on GitHub's Linux machines has no mic or recorder at all, so the app would stop at "This browser
@@ -58,12 +43,27 @@ function fakeSources({ micError, blocked }) {
   };
 }
 
+// In the page: the station named in blocked plays but won't share its sound, like a real station without CORS.
+// Asked to share (crossOrigin), it fails to load; asked the plain way, it plays. This is staged in the page
+// because Playwright's stand-in answers skip the browser's CORS check, and WebKit's media requests skip them.
+function blockStation(blocked) {
+  const src = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+  Object.defineProperty(HTMLMediaElement.prototype, 'src', {
+    configurable: true,
+    get() { return src.get.call(this); },
+    set(value) { src.set.call(this, value === blocked && this.crossOrigin ? 'data:audio/wav;base64,' : value); },
+  });
+}
+
+// Every station plays a tone (with a CORS header, so it shares its sound and can be taped).
 async function openDeck(page, { micError = '', blocked = '' } = {}) {
   const wav = toneWav();
+  const headers = { 'content-type': 'audio/wav', 'access-control-allow-origin': '*' };
   for (const s of STATIONS) {
-    await page.route(s.url, (route) => route.fulfill({ status: 200, body: wav, headers: { 'content-type': 'audio/wav' } }));
+    await page.route(s.url, (route) => route.fulfill({ status: 200, body: wav, headers }));
   }
-  await page.addInitScript(fakeSources, { micError, blocked });
+  await page.addInitScript(fakeSources, { micError });
+  if (blocked) await page.addInitScript(blockStation, blocked);
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Record', exact: true })).toBeVisible();
 }
@@ -142,6 +142,7 @@ test('records a voice note, then plays it from the shelf', async ({ page, browse
 
 test('tapes the radio and files it under Radio', async ({ page }) => {
   await openDeck(page);
+  test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
   await key(page, 'Play').click();
   await key(page, 'Record').click();
   await expect(line(page)).toHaveText('Taping 88.3 FM');

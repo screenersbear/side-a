@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { RECORD_TYPES, pickRecordType, MIN_SECONDS, worthKeeping, tapeSeconds, recordError, radioError, NOT_ALLOWED } from '../../logic/recording.js';
+import {
+  RECORD_TYPES, pickRecordType, MIN_SECONDS, worthKeeping, tapeSeconds, recordError, radioError, NOT_ALLOWED,
+  RECORD_BITRATE, MIC_SETTINGS,
+} from '../../logic/recording.js';
 
 describe('pickRecordType', () => {
   it('prefers MP4, which plays on iPhones too', () => {
@@ -74,16 +77,28 @@ describe('recordError', () => {
     expect(recordError(err('NotSupportedError'), 'mic')).toBe("This browser can't record.");
     expect(recordError(null, 'mic')).toBe("This browser can't record.");
   });
-  it('says recording is not allowed when the station blocks its stream', () => {
+  it('says recording is not allowed when the station does not share its sound', () => {
     expect(NOT_ALLOWED).toBe("Recording isn't allowed on this station.");
-    expect(recordError(err('TypeError'), 'line')).toBe(NOT_ALLOWED);
+    expect(recordError(err('SecurityError'), 'line')).toBe(NOT_ALLOWED);
   });
-  it('says the station could not be reached for other taping problems', () => {
-    expect(recordError(err('NetworkError'), 'line')).toBe("Couldn't reach the station.");
-    expect(recordError(null, 'line')).toBe("Couldn't reach the station.");
+  it('says when the browser cannot record the radio', () => {
+    expect(recordError(err('NotSupportedError'), 'line')).toBe("This browser can't record.");
+  });
+  it('has a fallback for other taping problems', () => {
+    expect(recordError(err('TypeError'), 'line')).toBe("Couldn't tape this station.");
+    expect(recordError(null, 'line')).toBe("Couldn't tape this station.");
   });
   it('says nothing when taping the radio was stopped on purpose', () => {
     expect(recordError(err('AbortError'), 'line')).toBe('');
+  });
+});
+
+describe('recording settings', () => {
+  it('records at about 192 kbps', () => {
+    expect(RECORD_BITRATE).toBe(192000);
+  });
+  it('turns off the phone call clean-up on the mic', () => {
+    expect(MIC_SETTINGS).toEqual({ echoCancellation: false, noiseSuppression: false, autoGainControl: false });
   });
 });
 

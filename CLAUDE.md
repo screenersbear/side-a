@@ -15,8 +15,10 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
   on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
 - `data/`: `tapes.js` (IndexedDB; the sound is stored as bytes, not a Blob, so Safari private mode works) and
   `settings.js` (last station and record source).
-- `audio/`: `radio.js` (audio element on the stream), `tape-player.js`, `recorder.js` (mic via MediaRecorder; radio by
-  keeping the station's own MP3 bytes from fetch, which needs the station to allow CORS), `engine.js` runs the steps.
+- `audio/`: `radio.js` (audio element on the stream; tapeable stations are asked to share their sound, crossOrigin,
+  and fall back to playing plain if they refuse), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
+  with call clean-up off, or the radio as it plays, element -> Web Audio -> MediaStreamDestination, from the moment REC
+  is pressed; Starky 2026-11-14: never a second connection), `engine.js` runs the steps.
 - `pages/` deck and shelf; `components/` cassette (true 1004 x 638 geometry), keys, tuner, level bars; `styles/`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.

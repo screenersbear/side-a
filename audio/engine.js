@@ -2,7 +2,7 @@
 // and tells the deck what happened (station live, tape position, recording saved) through dispatch.
 import { createRadio } from './radio.js';
 import { createTapePlayer } from './tape-player.js';
-import { startMic, startStream, measureSeconds } from './recorder.js';
+import { startMic, startLine, measureSeconds } from './recorder.js';
 import { recordError, radioError, worthKeeping, tapeSeconds } from '../logic/recording.js';
 import { saveTape } from '../data/tapes.js';
 
@@ -26,7 +26,7 @@ export function createEngine(dispatch) {
     const j = { draft: step.draft, startedAt: 0, timer: 0, session: null, stopped: false };
     job = j;
     const onEnd = () => dispatch({ type: 'stop' });
-    const start = step.source === 'line' ? startStream({ url: step.url, onEnd }) : startMic({ onEnd });
+    const start = step.source === 'line' ? startLine({ radio, onEnd }) : startMic({ onEnd });
     j.ready = start.then(
       (session) => {
         j.session = session;
@@ -64,7 +64,7 @@ export function createEngine(dispatch) {
   }
 
   const run = {
-    'radio.play': (st) => radio.play(st.url),
+    'radio.play': (st) => radio.play(st.url, st.tapeable),
     'radio.stop': () => radio.stop(),
     'tape.load': (st) => tape.load(st.blob),
     'tape.play': (st) => tape.play(st.pos),

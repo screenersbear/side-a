@@ -116,8 +116,15 @@ carryOut = createEngine(dispatch);
 showLock = createLockScreen(dispatch);
 
 // A web app can't record with the phone locked or another app in front: stop and save what was taped.
+// The radio and tapes play on (Starky: it should play when you lock or switch apps).
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) dispatch({ type: 'hidden' });
+});
+// Closing the app stops the sound. pagehide is the page being closed (or left for another page), not the phone
+// locking or another app coming up. iPhones may not say when a home-screen app is swiped away: then only a native
+// wrapper can stop it.
+window.addEventListener('pagehide', (e) => {
+  if (!e.persisted) dispatch({ type: 'closing' });
 });
 
 function refreshShelf() {

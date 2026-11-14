@@ -1,5 +1,5 @@
 // SIDE A in a real browser, the phone side of things: leaving the app mid-recording, the radio back on a plain
-// audio element after taping (so a locked phone keeps playing it), and the lock screen. Shared set-up:
+// audio element after taping (so a locked phone keeps playing it), the lock screen, and closing the app. Shared set-up:
 // side-a-setup.mjs.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
@@ -109,4 +109,36 @@ test('the lock screen shows the station and its song, and its buttons work the d
   await page.getByRole('button', { name: 'TAPE' }).click();
   await expect.poll(lock).toMatchObject({ title: '90.3 KEXP, Nov 14', artist: 'Taped from radio', state: 'paused' });
   await expect.poll(() => page.evaluate(() => [window.lockKeys.nexttrack, typeof window.lockKeys.seekforward])).toEqual([null, 'function']);
+});
+
+test('closing the app stops the sound; locking the phone or switching apps does not', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.played = [];
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function noted() {
+      window.played.push(this);
+      return play.call(this);
+    };
+  });
+  await openDeck(page);
+  const sounding = () => page.evaluate(() => window.played.filter((a) => !a.paused).length);
+  await key(page, 'Play').click();
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
+  await expect.poll(sounding).toBe(1);
+  // Locked or another app in front: the page is hidden, then back. The radio plays on.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    delete document.hidden;
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  // Kept for coming back to (the back/forward cache): plays on too.
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
+  expect(await sounding()).toBe(1);
+  // Closed: quiet.
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false })));
+  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ, off');
+  await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'false');
+  expect(await sounding()).toBe(0);
 });

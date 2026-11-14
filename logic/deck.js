@@ -199,6 +199,13 @@ function leftApp(s) {
   return s.recording ? { ...stop(s), notice: LEFT_APP } : s;
 }
 
+// The app is closing (swiped away, or the page is going): everything goes quiet. Locking the phone or switching
+// apps isn't closing: the radio and tapes play on then (Starky, 2026-11-14).
+function closing(s) {
+  if (!s.playing && !s.recording) return s;
+  return { ...s, playing: false, recording: false, tuning: false };
+}
+
 // A tape was deleted from the shelf. If it's the one in the deck, the deck is left empty (and stops if it was playing it).
 function eject(s, id) {
   if (!s.tape || s.tape.id !== id) return s;
@@ -223,6 +230,7 @@ export function deckReducer(s, action = {}) {
     case 'savePreset': return savePreset(s, action.key);
     case 'calm': return calm(s, action.text);
     case 'hidden': return leftApp(s);
+    case 'closing': return closing(s);
     case 'eject': return eject(s, action.id);
     case 'retitle': return retitle(s, action.tape);
     case 'toRadio': return toRadio(s);

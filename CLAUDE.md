@@ -33,8 +33,11 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   tape), `stay-awake.js` (screen wake lock while recording or making a file), `export.js` (a tape as MP3 or WAV).
 - Lock screen and background (HANDOFF 2026-11-14): when the app is hidden mid-recording (phone locked, another app),
   the recording stops and is saved: "Recording stopped when you left the app. The tape is saved." Making a file pauses
-  while hidden and carries on when back. Not yet measured on Starky's iPhone (home screen vs Safari, locked); if it
-  falls short, the real fix is a Capacitor wrapper with UIBackgroundModes = audio.
+  while hidden and carries on when back. The radio and tapes play on when the phone locks or another app comes up,
+  but closing the app stops them (Starky, 2026-11-14): `pagehide` (not persisted) dispatches 'closing'. On 11-14 the
+  radio kept playing after he closed the home-screen app; whether iOS sends pagehide on a swipe-away is untested. If
+  it doesn't, no web event can tell closing from locking: the fix is a native (Capacitor) wrapper, which also gives
+  UIBackgroundModes = audio. Not yet measured on his iPhone (home screen vs Safari, locked).
 - Tape menu and sharing (HANDOFF "Export"): tapping a tape on the shelf opens `components/tape-menu.js`, a
   `<dialog>`: Play, Share, Rename, Delete (asks first, Keep it focused). Share asks MP3 (default, made on the phone with
   LAME, 192 kbps, progress shown, pauses when hidden) or WAV (a mixtape shares its own WAV; other tapes are decoded and

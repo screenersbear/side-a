@@ -520,6 +520,29 @@ describe('Hidden (the phone locked or another app came up)', () => {
   });
 });
 
+describe('Closing (the app is closed)', () => {
+  it('turns the radio off, and stops a tape where it is', () => {
+    expect(run(radioPlaying(), 'closing')).toMatchObject({ mode: 'radio', playing: false, tuning: false });
+    expect(run(fresh(), 'play', 'closing')).toMatchObject({ playing: false, tuning: false });
+    expect(run(tapeIn({ playing: true, pos: 12 }), 'closing')).toMatchObject({ mode: 'tape', playing: false, pos: 12, tape: TAPE });
+  });
+  it('stops any recording, the radio too when taping it', () => {
+    expect(run(tapeIn(), { type: 'rec', now: NOW }, 'closing')).toMatchObject({ recording: false, playing: false });
+    const taping = run(radioPlaying(), { type: 'rec', now: NOW });
+    const s = deckReducer(taping, { type: 'closing' });
+    expect(s).toMatchObject({ recording: false, playing: false, tuning: false });
+    expect(radioOn(s)).toBe(false);
+  });
+  it('keeps the station, tape, notice and presets', () => {
+    const s = { ...radioPlaying(), notice: 'x' };
+    const next = deckReducer(s, { type: 'closing' });
+    expect(next).toEqual({ ...s, playing: false });
+  });
+  it('changes nothing when nothing sounds', () => {
+    for (const s of [fresh(), tapeIn(), tapeIn({ pos: 5 })]) expect(deckReducer(s, { type: 'closing' })).toBe(s);
+  });
+});
+
 describe('Eject (a tape deleted from the shelf)', () => {
   const eject = (id) => ({ type: 'eject', id });
   it('empties the deck when it held that tape, and stops it playing', () => {

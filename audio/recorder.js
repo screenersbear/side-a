@@ -47,8 +47,12 @@ export async function startMic({ onEnd }) {
 
 // The radio: records what the app is playing, from now. Throws SecurityError when the station doesn't share it.
 export async function startLine({ radio, onEnd }) {
-  if (typeof MediaRecorder === 'undefined') throw notSupported();
+  // The station's refusal comes first: it holds in every browser.
   const tap = radio.tap();
+  if (typeof MediaRecorder === 'undefined') {
+    tap.release();
+    throw notSupported();
+  }
   return recordStream(tap.stream, { onEnd, release: tap.release });
 }
 

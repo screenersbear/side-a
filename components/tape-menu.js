@@ -196,13 +196,15 @@ export function createTapeMenu({ onPlay, onRename, onDelete, makeFile, share }) 
 
   return {
     node,
-    // saved: true right after a mixtape was saved (says so, and offers Share first).
-    open(next, { saved: justSaved = false } = {}) {
+    // saved: true right after a mixtape was saved (says so, and offers Share first). warning: what the tape check
+    // found wrong with it ("This recording came out silent."), said instead.
+    open(next, { saved: justSaved = false, warning = '' } = {}) {
       stopJob();
       tape = next;
       saved = justSaved;
       file = null;
       note.hidden = !saved;
+      setText(note, warning || 'Mixtape saved to the shelf.');
       draw();
       keys();
       if (!node.open) node.showModal();

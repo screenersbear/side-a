@@ -103,9 +103,9 @@ const shelf = createShelfPage({
 const settings = createSettingsPage({ onPick: wearLook });
 const mixing = createMixing({
   // The new mixtape is on the shelf, with its menu open to share it.
-  onSaved: (tape) => {
+  onSaved: (tape, warning) => {
     location.hash = hashFor('shelf');
-    menu.open(tape, { saved: true });
+    menu.open(tape, { saved: true, warning });
   },
   // The mix plays alone: the deck stops (unless it's taping, which carries on).
   quiet: () => {

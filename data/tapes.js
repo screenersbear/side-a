@@ -66,6 +66,13 @@ export async function listTapes() {
   return records.map(toTape);
 }
 
+// One tape as the phone has it stored, or null when it isn't on the shelf. A new tape is read back this way to check
+// it was saved whole (audio/sound-check.js).
+export async function getTape(id) {
+  const record = await done((await store('readonly')).get(id));
+  return record ? toTape(record) : null;
+}
+
 // The newest tape on the shelf, or null when it's empty.
 export async function newestTape() {
   const tapes = await listTapes();

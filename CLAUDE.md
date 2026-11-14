@@ -26,7 +26,14 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   muted element in the same tap and switches to it once it plays; if the phone pauses it after unmuting, the taped
   element carries on), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
   with call clean-up off, or the radio as it plays, element -> Web Audio -> MediaStreamDestination, from the moment REC
-  is pressed; Starky 2026-11-14: never a second connection), `now-playing.js` (while the radio plays, reads the station's
+  is pressed; Starky 2026-11-14: never a second connection. KNOWN BUG, 2026-11-14: WebKit, so every iPhone browser,
+  hands Web Audio silence from a live network stream (also when fed through MediaSource; it taps a blob fine), so radio
+  tapes come out silent on iPhones. Shown with a real streaming MP3 station in Playwright WebKit; Chrome tapes sound),
+  `sound-check.js` (every new tape is read back from storage, its size compared and its loudest level decoded;
+  silent or not saved whole -> the deck says "This recording came out silent." / "This recording didn't save
+  properly." Rules in `logic/sound-check.js`; one "SIDE A tape check: {...}" console line per tape, with the
+  recorder's notes: mic settings applied, track muted, AudioContext state, the level Web Audio heard while taping;
+  and "SIDE A tape playing: {...}" per play: read them in Safari's Web Inspector), `now-playing.js` (while the radio plays, reads the station's
   song title every 20 s; one reading feeds both the deck's second line and a radio tape's songs: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
   Icecast server's status-json.xsl, "kexp" = KEXP's feed; 14 of 73 stations have one), `engine.js` runs the steps.
   `lock-screen.js` (Media Session: station or tape, song, the cassette icon; skip = station on the radio, 10 s on a
@@ -86,7 +93,9 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   `navigator.share`, or the file downloads to the Mac.
   The browser tests already mute themselves and use a stand-in station and mic (`tests/e2e/side-a-setup.mjs`, shared by
   `side-a`, `looks-and-mix`, `shelf-menu` and `phone` .spec.mjs). They block the service worker: in WebKit,
-  Playwright's stand-ins can't answer a page a service worker controls.
+  Playwright's stand-ins can't answer a page a service worker controls. An element taped through Web Audio is left
+  unmuted (a muted element hands Web Audio silence; its sound still goes nowhere). `tapeChecks(page)` collects the tape
+  check lines; `openDeck(page, { silentMic: true })` gives a mic that records silence.
 - The service worker only registers on https and on 127.0.0.1 (the test server), so a preview on localhost shows edits.
 
 ## Testing rules (from app-safety-kit)

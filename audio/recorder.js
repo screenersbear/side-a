@@ -1,32 +1,57 @@
-// Recorders. Each start function resolves to a session with stop(), which resolves to the recording (a Blob),
-// and calls onEnd if the sound stops by itself (the mic is taken away, the station drops out).
+// Recorders. Each start function resolves to a session with stop(), which resolves to { blob, notes }: the recording,
+// and what the recorder saw (for the tape check's log line, audio/sound-check.js). onEnd runs if the sound stops by
+// itself (the mic is taken away, the station drops out).
 import { pickRecordType, RECORD_BITRATE, MIC_SETTINGS } from '../logic/recording.js';
 
 const notSupported = () => Object.assign(new Error('no recorder'), { name: 'NotSupportedError' });
 
+// The mic's settings as the phone applied them (it may not honour every one asked for).
+const SETTINGS = ['echoCancellation', 'noiseSuppression', 'autoGainControl', 'sampleRate', 'channelCount'];
+
+function trackNotes(track) {
+  if (!track) return { track: 'none' };
+  const applied = typeof track.getSettings === 'function' ? track.getSettings() : {};
+  const notes = { track: track.readyState, trackMuted: track.muted };
+  SETTINGS.forEach((name) => {
+    if (name in applied) notes[name] = applied[name];
+  });
+  return notes;
+}
+
 // Records a sound stream with MediaRecorder. release() runs once it has stopped (lets go of the mic or radio).
-function recordStream(stream, { onEnd, release }) {
+// more() adds the source's own notes (the radio's).
+function recordStream(stream, { onEnd, release, more = () => ({}) }) {
   const mimeType = pickRecordType((t) => MediaRecorder.isTypeSupported(t));
   const options = { audioBitsPerSecond: RECORD_BITRATE };
   if (mimeType) options.mimeType = mimeType;
   const recorder = new MediaRecorder(stream, options);
   const chunks = [];
+  const track = stream.getAudioTracks()[0];
   let stopping = false;
+  let mutes = 0; // times the phone muted the sound while recording (a call, Siri, another app taking the mic)
   recorder.addEventListener('dataavailable', (e) => {
     if (e.data && e.data.size) chunks.push(e.data);
   });
-  stream.getAudioTracks().forEach((track) => track.addEventListener('ended', () => {
-    if (!stopping) onEnd();
-  }));
+  stream.getAudioTracks().forEach((t) => {
+    t.addEventListener('ended', () => {
+      if (!stopping) onEnd();
+    });
+    t.addEventListener('mute', () => {
+      mutes += 1;
+    });
+  });
   recorder.start(1000);
 
   return {
     stop() {
       stopping = true;
+      // Noted before letting go, while the track is still live.
+      const notes = { recorder: recorder.mimeType || mimeType || '', mutes, ...trackNotes(track), ...more() };
       return new Promise((resolve) => {
         const finish = () => {
           release();
-          resolve(new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/mp4' }));
+          notes.chunks = chunks.length;
+          resolve({ blob: new Blob(chunks, { type: recorder.mimeType || mimeType || 'audio/mp4' }), notes });
         };
         if (recorder.state === 'inactive') return finish();
         recorder.addEventListener('stop', finish, { once: true });
@@ -53,7 +78,7 @@ export async function startLine({ radio, onEnd }) {
     tap.release();
     throw notSupported();
   }
-  return recordStream(tap.stream, { onEnd, release: tap.release });
+  return recordStream(tap.stream, { onEnd, release: tap.release, more: tap.notes });
 }
 
 // How long a recording really is, read from the file. Radio tapes run longer than the time spent taping,

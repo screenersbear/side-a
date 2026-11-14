@@ -5,8 +5,34 @@
 // The sound goes through Web Audio only while it's being taped: a locked phone silences Web Audio but keeps a
 // plain audio element playing. When taping ends, a fresh plain element takes over (plain()).
 
+import { peakOf, dbText } from '../logic/sound-check.js';
+
 // After the switch, how long to wait to be sure the phone let the new element play with sound.
 const SETTLE_MS = 1000;
+
+// While taping: the loudest level Web Audio gets from the station (an iPhone can hand Web Audio silence from a
+// live stream). Read four times a second; only for the tape check's log.
+function listenTo(g) {
+  const meter = g.context.createAnalyser();
+  const samples = new Float32Array(meter.fftSize);
+  let loudest = 0;
+  g.source.connect(meter);
+  const timer = setInterval(() => {
+    meter.getFloatTimeDomainData(samples);
+    loudest = Math.max(loudest, peakOf([samples]));
+  }, 250);
+  return {
+    loudest: () => loudest,
+    stop() {
+      clearInterval(timer);
+      try {
+        g.source.disconnect(meter);
+      } catch {
+        // already let go
+      }
+    },
+  };
+}
 
 export function createRadio({ onLive, onLost }) {
   let tuned = false;
@@ -134,7 +160,8 @@ export function createRadio({ onLive, onLost }) {
       audio.load();
     },
     plain,
-    // What's playing, as a sound stream for the recorder. release() lets go of it.
+    // What's playing, as a sound stream for the recorder. release() lets go of it. notes() says, for the tape
+    // check's log, whether Web Audio was running and the loudest level it got from the station while taping.
     tap() {
       if (!shared) throw Object.assign(new Error('not shared'), { name: 'SecurityError' });
       if (typeof AudioContext === 'undefined') throw Object.assign(new Error('no web audio'), { name: 'NotSupportedError' });
@@ -147,12 +174,16 @@ export function createRadio({ onLive, onLost }) {
         graph = { context, source };
       }
       const g = graph;
+      const contextAtStart = g.context.state;
       g.context.resume().catch(() => {});
       const out = g.context.createMediaStreamDestination();
       g.source.connect(out);
+      const meter = listenTo(g);
       return {
         stream: out.stream,
+        notes: () => ({ contextAtStart, contextAtEnd: g.context.state, heard: dbText(meter.loudest()) }),
         release: () => {
+          meter.stop();
           try {
             g.source.disconnect(out);
           } catch {

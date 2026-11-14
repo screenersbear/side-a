@@ -1,6 +1,7 @@
 // The mix's sound: reads tapes into memory, plays the mix (to hear where to cut) and renders it into one file.
 // The plan comes from logic/mix.js (mixPlan): which part of which tape, when it starts, how long it fades in.
 import { encodeWav } from '../logic/wav.js';
+import { peakOf } from '../logic/sound-check.js';
 
 const RATE = 44100;
 const decoded = new Map();
@@ -93,13 +94,14 @@ export function playMix(plan, tapes, from, { onTime, onEnd, onFail }) {
   return { stop };
 }
 
-// The whole mix as one WAV file (a Blob), and its length in seconds.
+// The whole mix as one WAV file (a Blob), its length in seconds and its loudest level (for the tape check).
 export async function renderMix(plan, tapes) {
   const total = plan.reduce((sum, p) => sum + p.to - p.from, 0);
   const sounds = await decodePlan(plan, tapes);
   const context = new OfflineAudioContext(2, Math.max(1, Math.ceil(total * RATE)), RATE);
   schedule(context, plan, sounds, 0);
   const rendered = await context.startRendering();
-  const bytes = encodeWav([rendered.getChannelData(0), rendered.getChannelData(1)], RATE);
-  return { blob: new Blob([bytes], { type: 'audio/wav' }), seconds: total };
+  const channels = [rendered.getChannelData(0), rendered.getChannelData(1)];
+  const bytes = encodeWav(channels, RATE);
+  return { blob: new Blob([bytes], { type: 'audio/wav' }), seconds: total, peak: peakOf(channels) };
 }

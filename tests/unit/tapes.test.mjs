@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { openShelf, closeShelf, saveTape, listTapes, newestTape, renameTape, deleteTape } from '../../data/tapes.js';
+import { openShelf, closeShelf, saveTape, listTapes, getTape, newestTape, renameTape, deleteTape } from '../../data/tapes.js';
 
 const sound = (text = 'abc', type = 'audio/mp4') => new Blob([text], { type });
 const tape = (extra = {}) => ({ kind: 'voice', title: 'Nov 14, 9:41 PM', duration: 9, created: 1000, blob: sound(), ...extra });
@@ -178,5 +178,19 @@ describe('deleteTape', () => {
     expect((await listTapes()).map((t) => t.id)).toEqual([two.id]);
     await deleteTape(99);
     expect(await listTapes()).toHaveLength(1);
+  });
+});
+
+describe('getTape', () => {
+  it('reads one tape back as the phone stored it, sound and all', async () => {
+    await saveTape(tape({ blob: sound('first') }));
+    const saved = await saveTape(tape({ title: 'Second', blob: sound('second take') }));
+    const back = await getTape(saved.id);
+    expect(back).toMatchObject({ id: 2, title: 'Second', mime: 'audio/mp4' });
+    expect(back.blob.size).toBe(11);
+    expect(await back.blob.text()).toBe('second take');
+  });
+  it('is null for a tape that isn\'t on the shelf', async () => {
+    expect(await getTape(7)).toBeNull();
   });
 });

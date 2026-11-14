@@ -16,12 +16,13 @@ function toneWav(seconds = 20, rate = 8000) {
   return buf;
 }
 
-// In the page: muted sound and a test-signal mic.
-function fakeSources({ micError }) {
+// In the page: muted sound and a test-signal mic (silentMic: a mic that hands over nothing but silence, the way a
+// broken one can on a phone).
+function fakeSources({ micError, silentMic }) {
   // Tests stay silent (Starky's rule: mute while testing the radio).
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function mutedPlay() {
-    this.muted = true;
+    if (!this.throughWebAudio) this.muted = true;
     return play.call(this);
   };
   // And they stay muted (the radio unmutes the plain element that takes over after taping).
@@ -29,8 +30,18 @@ function fakeSources({ micError }) {
   Object.defineProperty(HTMLMediaElement.prototype, 'muted', {
     configurable: true,
     get() { return muted.get.call(this); },
-    set() { muted.set.call(this, true); },
+    set(on) { muted.set.call(this, this.throughWebAudio ? on : true); },
   });
+  // Except an element taped through Web Audio: a muted element hands Web Audio silence, and its sound now goes
+  // only through Web Audio, which is silenced below.
+  if (window.AudioContext) {
+    const wire = AudioContext.prototype.createMediaElementSource;
+    AudioContext.prototype.createMediaElementSource = function unmutedSource(element) {
+      element.throughWebAudio = true;
+      muted.set.call(element, false);
+      return wire.call(this, element);
+    };
+  }
   // Web Audio too (the mix plays through it): every live context's speakers go through a silent gain.
   if (window.BaseAudioContext) {
     const speakers = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'destination');
@@ -60,7 +71,11 @@ function fakeSources({ micError }) {
     const ctx = new AudioContext();
     const osc = ctx.createOscillator();
     const out = ctx.createMediaStreamDestination();
-    osc.connect(out);
+    if (silentMic) {
+      const hush = ctx.createGain();
+      hush.gain.value = 0;
+      osc.connect(hush).connect(out);
+    } else osc.connect(out);
     osc.start();
     await ctx.resume();
     return out.stream;
@@ -80,19 +95,29 @@ function blockStation(blocked) {
 }
 
 // Every station plays a tone (with a CORS header, so it shares its sound and can be taped).
-export async function openDeck(page, { micError = '', blocked = '' } = {}) {
+export async function openDeck(page, { micError = '', blocked = '', silentMic = false } = {}) {
   const wav = toneWav();
   const headers = { 'content-type': 'audio/wav', 'access-control-allow-origin': '*' };
   for (const s of STATIONS) {
     await page.route(s.url, (route) => route.fulfill({ status: 200, body: wav, headers }));
   }
-  await page.addInitScript(fakeSources, { micError });
+  await page.addInitScript(fakeSources, { micError, silentMic });
   if (blocked) await page.addInitScript(blockStation, blocked);
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Record', exact: true })).toBeVisible();
 }
 
 export const status = (page) => page.locator('.status');
+
+// What the tape check found for each new tape (its "SIDE A tape check: {...}" console lines, audio/sound-check.js).
+export function tapeChecks(page) {
+  const checks = [];
+  page.on('console', (msg) => {
+    const [, json] = msg.text().match(/^SIDE A tape check: (.*)$/) || [];
+    if (json) checks.push(JSON.parse(json));
+  });
+  return checks;
+}
 export const line = (page) => page.locator('.line');
 export const key = (page, name) => page.getByRole('button', { name, exact: true });
 

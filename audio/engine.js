@@ -8,6 +8,7 @@ import { recordError, radioError, worthKeeping, tapeSeconds } from '../logic/rec
 import { addSong } from '../logic/songs.js';
 import { STATIONS } from '../logic/stations.js';
 import { saveTape } from '../data/tapes.js';
+import { checkTape } from './sound-check.js';
 
 export function createEngine(dispatch) {
   const radio = createRadio({
@@ -75,17 +76,21 @@ export function createEngine(dispatch) {
     const length = seconds(j);
     await j.ready;
     if (!j.session) return dispatch({ type: 'unsaved', message: '' });
-    const blob = await j.session.stop();
+    const { blob, notes } = await j.session.stop();
     if (!worthKeeping(blob, length)) return dispatch({ type: 'unsaved', message: 'Nothing was taped.' });
     const real = await measureSeconds(blob);
+    let saved;
     try {
       const songs = j.draft.kind === 'radio' ? { songs: j.songs } : {};
-      const saved = await saveTape({ ...j.draft, ...songs, duration: tapeSeconds(real || length), created: Date.now(), mime: blob.type, blob });
+      saved = await saveTape({ ...j.draft, ...songs, duration: tapeSeconds(real || length), created: Date.now(), mime: blob.type, blob });
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
       dispatch({ type: 'saved', tape: saved });
     } catch {
-      dispatch({ type: 'unsaved', message: "The phone is full. The tape wasn't saved." });
+      return dispatch({ type: 'unsaved', message: "The phone is full. The tape wasn't saved." });
     }
+    // Read back and listened to: one that came out silent (or didn't save whole) says so.
+    const text = await checkTape(saved, { bytes: blob.size, notes: { ...notes, taped: Number(length.toFixed(1)) } });
+    if (text) dispatch({ type: 'warn', text });
   }
 
   const run = {

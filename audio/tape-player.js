@@ -5,6 +5,12 @@ export function createTapePlayer({ onTime, onEnded, onFail }) {
   let url = null;
 
   audio.addEventListener('timeupdate', () => onTime(audio.currentTime));
+  // One line per play, to read in Safari's Web Inspector when a tape plays with no sound: is it really playing,
+  // muted, at what volume, and how the phone is routing the sound (navigator.audioSession, iPhones only).
+  audio.addEventListener('playing', () => {
+    const session = navigator.audioSession ? navigator.audioSession.type : 'none';
+    console.info('SIDE A tape playing:', JSON.stringify({ seconds: audio.duration, at: audio.currentTime, muted: audio.muted, volume: audio.volume, session }));
+  });
   audio.addEventListener('ended', () => onEnded());
 
   function seek(pos) {

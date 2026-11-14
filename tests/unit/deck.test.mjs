@@ -580,6 +580,23 @@ describe('Retitle (a tape renamed on the shelf)', () => {
   });
 });
 
+describe('Warn (a new tape came out silent, or didn\'t save whole)', () => {
+  it('shows the message, and the deck carries on as it was', () => {
+    const s = tapeIn({ pos: 3, playing: true });
+    const warned = deckReducer(s, { type: 'warn', text: 'This recording came out silent.' });
+    expect(warned).toEqual({ ...s, notice: 'This recording came out silent.' });
+  });
+  it('the next press clears it', () => {
+    const warned = deckReducer(tapeIn(), { type: 'warn', text: 'This recording came out silent.' });
+    expect(deckReducer(warned, { type: 'play' }).notice).toBe('');
+  });
+  it('no message changes nothing', () => {
+    const s = tapeIn();
+    expect(deckReducer(s, { type: 'warn', text: '' })).toBe(s);
+    expect(deckReducer(s, { type: 'warn' })).toBe(s);
+  });
+});
+
 describe('deckReducer', () => {
   it('ignores actions it does not know', () => {
     const s = fresh();

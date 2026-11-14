@@ -218,6 +218,11 @@ function retitle(s, tape) {
   return { ...s, tape: { ...s.tape, title: tape.title, named: true } };
 }
 
+// A new tape came out silent, or didn't save whole: the deck says so (logic/sound-check.js), until the next press.
+function warn(s, text) {
+  return text ? { ...s, notice: text } : s;
+}
+
 export function deckReducer(s, action = {}) {
   switch (action.type) {
     case 'heard': return heard(s, action.station, action.text);
@@ -233,6 +238,7 @@ export function deckReducer(s, action = {}) {
     case 'closing': return closing(s);
     case 'eject': return eject(s, action.id);
     case 'retitle': return retitle(s, action.tape);
+    case 'warn': return warn(s, action.text);
     case 'toRadio': return toRadio(s);
     case 'toTape': return toTape(s);
     case 'toMic': return setSource(s, 'mic');

@@ -2,7 +2,7 @@
 // the mic refusing, and the upright-phone prompt. Shared set-up: side-a-setup.mjs.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
-import { openDeck, status, line, key, pickLook } from './side-a-setup.mjs';
+import { openDeck, status, line, key, pickLook, tapeChecks } from './side-a-setup.mjs';
 
 // No service worker here: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
 test.use({ serviceWorkers: 'block' });
@@ -101,6 +101,7 @@ test('a station that blocks taping when Record is pressed shows the same message
 
 test('records a voice note, then plays it from the shelf', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'the stand-in mic needs Chromium');
+  const checks = tapeChecks(page);
   await openDeck(page);
   test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
   await page.getByRole('button', { name: 'TAPE' }).click();
@@ -113,6 +114,11 @@ test('records a voice note, then plays it from the shelf', async ({ page, browse
   await key(page, 'Stop').click();
   await expect(status(page)).toHaveText('Tape, stopped');
   await expect(line(page)).not.toHaveText(/Saving|Blank/);
+  // The new tape is read back from storage and listened to: whole, with sound, so the deck says nothing more.
+  await expect.poll(() => checks.length, { timeout: 5000 }).toBe(1);
+  expect(checks[0]).toMatchObject({ result: 'sound', kind: 'voice', mutes: 0 });
+  expect(checks[0].stored).toBe(checks[0].bytes);
+  await expect(status(page)).toHaveText('Tape, stopped');
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();
   await expect(page.getByRole('heading', { name: 'Tape shelf' })).toBeVisible();
@@ -125,7 +131,27 @@ test('records a voice note, then plays it from the shelf', async ({ page, browse
   await expect(status(page)).toHaveText(/Tape, (playing|stopped)/);
 });
 
-test('tapes the radio and files it under Radio', async ({ page }) => {
+test('a recording that comes out silent says so', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'the stand-in mic needs Chromium');
+  const checks = tapeChecks(page);
+  await openDeck(page, { silentMic: true });
+  test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
+  await page.getByRole('button', { name: 'TAPE' }).click();
+  await key(page, 'Record').click();
+  await expect(page.locator('.big')).not.toHaveText('00:00', { timeout: 5000 });
+  await page.waitForTimeout(600);
+  await key(page, 'Stop').click();
+  await expect(status(page)).toHaveText('This recording came out silent.');
+  expect(checks[0]).toMatchObject({ result: 'silent', kind: 'voice', loudest: 'silence', mutes: 0 });
+  // It's kept, so it can be looked at (or deleted), and the next press brings the deck back.
+  await key(page, 'Play').click();
+  await expect(status(page)).not.toHaveText('This recording came out silent.');
+  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await expect(page.getByRole('button', { name: /: Voice note, / })).toHaveCount(1);
+});
+
+test('tapes the radio and files it under Radio', async ({ page, browserName }) => {
+  const checks = tapeChecks(page);
   await openDeck(page);
   test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
   await key(page, 'Play').click();
@@ -136,9 +162,20 @@ test('tapes the radio and files it under Radio', async ({ page }) => {
   // Record again stops it, the same as Stop: the tape is saved and the radio plays on, like a boombox.
   await key(page, 'Record').click();
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
-  await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
   await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'RADIO' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => checks.length, { timeout: 5000 }).toBe(1);
+  if (browserName === 'webkit') {
+    // WebKit (every iPhone browser) hands Web Audio silence from a live stream, so the tape is silent: the cause
+    // of silent radio tapes on iPhones (2026-11-14). The deck says so instead of failing quietly.
+    expect(checks[0]).toMatchObject({ result: 'silent', kind: 'radio', heard: 'silence', contextAtEnd: 'running' });
+    await expect(status(page)).toHaveText('This recording came out silent.');
+  } else {
+    // The tape has the station's sound in it, and Web Audio heard it while taping.
+    expect(checks[0]).toMatchObject({ result: 'sound', kind: 'radio', contextAtEnd: 'running' });
+    expect(checks[0].heard).toMatch(/dB$/);
+    await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
+  }
   // Stop again turns the radio off. The tape waits in the deck.
   await key(page, 'Stop').click();
   await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ, off');

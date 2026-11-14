@@ -8,6 +8,7 @@ import { tapeTitle } from '../logic/tape-names.js';
 import { tapeSeconds } from '../logic/recording.js';
 import { listTapes, saveTape } from '../data/tapes.js';
 import { decodeTape, playMix, renderMix } from '../audio/mixdown.js';
+import { checkTape } from '../audio/sound-check.js';
 import { createTapePlayer } from '../audio/tape-player.js';
 import { createTapePicker } from '../components/tape-picker.js';
 import { createMixPage } from './mix.js';
@@ -15,7 +16,7 @@ import { createClipPage } from './clip.js';
 
 const noPart = () => ({ tape: null, trim: startTrim(0), levels: null, reading: false, failed: false });
 
-// onSaved(tape): the mixtape is on the shelf. quiet(): stop the deck, so the mix can be heard alone.
+// onSaved(tape, warning): the mixtape is on the shelf (warning: '' or what the tape check found, audio/sound-check.js). quiet(): stop the deck, so the mix can be heard alone.
 export function createMixing({ onSaved, quiet }) {
   let mix = emptyMix();
   let tapes = [];
@@ -59,13 +60,14 @@ export function createMixing({ onSaved, quiet }) {
     saving = true;
     drawMix();
     try {
-      const { blob, seconds } = await renderMix(mixPlan(mix), tapes);
+      const { blob, seconds, peak } = await renderMix(mixPlan(mix), tapes);
       const now = Date.now();
       const tape = await saveTape({ kind: 'mix', title: tapeTitle('mix', null, now), duration: tapeSeconds(seconds), created: now, mime: 'audio/wav', blob });
+      const warning = await checkTape(tape, { bytes: blob.size, peak, notes: { clips: mix.clips.length } });
       mix = emptyMix();
       saving = false;
       drawMix();
-      onSaved(tape);
+      onSaved(tape, warning);
     } catch {
       saving = false;
       note = "Couldn't make the mixtape. Try again.";

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   STATIONS, PRESET_FREQS, DIAL_LOW, DIAL_HIGH, DIAL_TICKS,
-  dialPercent, stepStation, freqText, isStation, stationAt, presetStation, presetNumber, canTape,
+  dialPercent, stepStation, freqText, isStation, stationAt, presetStation, presetNumber, cleanPresets, canTape,
 } from '../../logic/stations.js';
 import { STATION_LIST } from '../../data/stations.js';
 
@@ -63,6 +63,34 @@ describe('presets', () => {
     expect(presetNumber(stationAt(91.1))).toBe(0);
     expect(presetNumber(-1)).toBe(0);
     expect(presetNumber(999)).toBe(0);
+  });
+  it('work from saved presets too', () => {
+    const mine = [88.3, 91.1, 90.3, 98.9];
+    expect(presetStation(1, mine)).toBe(stationAt(91.1));
+    expect(presetStation(4, mine)).toBe(-1);
+    expect(presetNumber(stationAt(91.1), mine)).toBe(2);
+    expect(presetNumber(stationAt(89.3), mine)).toBe(0);
+    // A station on two keys is on the first.
+    expect(presetNumber(stationAt(90.3), [88.3, 90.3, 90.3, 98.9])).toBe(2);
+  });
+});
+
+describe('cleanPresets', () => {
+  it('keeps four saved frequencies that are on the dial', () => {
+    expect(cleanPresets([91.1, 89.3, 90.3, 98.9])).toEqual([91.1, 89.3, 90.3, 98.9]);
+  });
+  it('is the defaults when nothing was saved', () => {
+    expect(cleanPresets(null)).toEqual(PRESET_FREQS);
+    expect(cleanPresets(undefined)).toEqual(PRESET_FREQS);
+    expect(cleanPresets('88.3')).toEqual(PRESET_FREQS);
+    expect(cleanPresets([])).toEqual(PRESET_FREQS);
+  });
+  it('puts back the default on any key whose saved station is not on the dial', () => {
+    expect(cleanPresets([91.1, 90.2, null, 'x'])).toEqual([91.1, 89.3, 90.3, 98.9]);
+    expect(cleanPresets([91.1])).toEqual([91.1, 89.3, 90.3, 98.9]);
+  });
+  it('gives each the station\'s own frequency, and only four', () => {
+    expect(cleanPresets(['91.1', 91.12, 90.3, 98.9, 100.1])).toEqual([91.1, 91.1, 90.3, 98.9]);
   });
 });
 

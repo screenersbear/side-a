@@ -61,6 +61,8 @@
 .deck .p {
   background: transparent; color: inherit; font-size: 22px; font-weight: 900; font-stretch: 62%;
   transition: transform .08s, box-shadow .08s;
+  /* Held down to save a station: no text selection or phone menu, no double-tap zoom. */
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation;
 }
 
 .deck .links { display: flex; justify-content: space-between; }

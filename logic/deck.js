@@ -1,7 +1,7 @@
 // The deck: what state it's in, and what each button and event does to it.
 // Pure functions only (no sound, no screen), so every rule here is easy to test.
 // The sound follows the state: see sound-plan.js.
-import { STATIONS, stepStation, stationAt, presetStation, canTape } from './stations.js';
+import { STATIONS, stepStation, stationAt, presetStation, cleanPresets, canTape } from './stations.js';
 import { tapeTitle } from './tape-names.js';
 import { NOT_ALLOWED } from './recording.js';
 import { parseNowPlaying } from './songs.js';
@@ -9,18 +9,23 @@ import { parseNowPlaying } from './songs.js';
 // Rewind and fast forward jump this many seconds.
 export const SKIP_SECONDS = 10;
 
+// How long a short message ("Saved to preset 2") stays before the status line comes back.
+export const SHORT_NOTICE_MS = 2000;
+
 // The deck when the app opens: radio, quiet (phones don't let sound start on its own),
-// on the last station listened to (saved as its frequency), or preset 1.
+// on the last station listened to (saved as its frequency), or preset 1. The presets saved on the phone, if any.
 export function startState(saved = {}) {
   const s = saved || {};
   const last = stationAt(s.freq);
+  const presets = cleanPresets(s.presets);
   return {
     mode: 'radio', // 'radio' or 'tape'
     playing: false, // sound on: radio, a tape, or recording
     recording: false,
     tuning: false, // radio pressed, waiting for the station to start
     source: s.source === 'line' ? 'line' : 'mic', // what Record tapes in tape mode: the mic or the radio
-    station: last >= 0 ? last : presetStation(0),
+    station: last >= 0 ? last : presetStation(0, presets),
+    presets, // the four preset keys' frequencies
     tape: null, // the tape in the deck: { id, kind, title, duration, created, blob }
     draft: null, // the tape being recorded or saved: { kind, title, from: the mode Record was pressed in }
     pos: 0, // seconds: where the tape is, or how long the recording is
@@ -84,7 +89,7 @@ function wind(s, direction) {
 
 // A preset key (0 to 3) tunes to its station.
 function pickPreset(s, key) {
-  const index = presetStation(key);
+  const index = presetStation(key, s.presets);
   if (index < 0) return s;
   if (s.mode === 'radio' && s.playing && s.station === index) return s;
   return tune(s, index);
@@ -162,6 +167,24 @@ function heard(s, station, text) {
   return { ...s, heard: { station, song } };
 }
 
+// Holding a preset key (0 to 3) saves the station on the dial there, like a car radio. Only on the radio:
+// on tape a hold is just a press (it tunes to the preset).
+function savePreset(s, key) {
+  if (presetStation(key, s.presets) < 0) return s;
+  if (s.mode !== 'radio') return pickPreset(s, key);
+  const freq = STATIONS[s.station].freq;
+  return { ...s, presets: s.presets.map((f, i) => (i === key ? freq : f)), notice: savedText(key) };
+}
+
+export function savedText(key) {
+  return `Saved to preset ${key + 1}`;
+}
+
+// A short message has had its time: the status line comes back, unless something else has replaced it.
+function calm(s, text) {
+  return s.notice && s.notice === text ? { ...s, notice: '' } : s;
+}
+
 function sameSong(a, b) {
   return a === b || Boolean(a && b && a.artist === b.artist && a.title === b.title);
 }
@@ -175,6 +198,8 @@ export function deckReducer(s, action = {}) {
     case 'rew': return wind(s, -1);
     case 'ff': return wind(s, 1);
     case 'preset': return pickPreset(s, action.key);
+    case 'savePreset': return savePreset(s, action.key);
+    case 'calm': return calm(s, action.text);
     case 'toRadio': return toRadio(s);
     case 'toTape': return toTape(s);
     case 'toMic': return setSource(s, 'mic');

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { startState, deckReducer, radioOn, tapeOn, SKIP_SECONDS } from '../../logic/deck.js';
-import { STATIONS, stationAt } from '../../logic/stations.js';
+import { startState, deckReducer, radioOn, tapeOn, SKIP_SECONDS, SHORT_NOTICE_MS, savedText } from '../../logic/deck.js';
+import { STATIONS, PRESET_FREQS, stationAt } from '../../logic/stations.js';
 import { NOT_ALLOWED } from '../../logic/recording.js';
 
 const WBGO = stationAt(88.3);
@@ -21,8 +21,14 @@ describe('startState', () => {
   it('opens on the radio, quiet, preset 1, mic', () => {
     expect(fresh()).toEqual({
       mode: 'radio', playing: false, recording: false, tuning: false, source: 'mic',
-      station: WBGO, tape: null, draft: null, pos: 0, notice: '', heard: null,
+      station: WBGO, presets: PRESET_FREQS, tape: null, draft: null, pos: 0, notice: '', heard: null,
     });
+  });
+  it('uses the presets saved on the phone, and starts on preset 1 when no station was saved', () => {
+    const s = startState({ presets: [91.1, 89.3, 90.3, 98.9] });
+    expect(s.presets).toEqual([91.1, 89.3, 90.3, 98.9]);
+    expect(s.station).toBe(WFMU);
+    expect(startState({ presets: 'junk' }).presets).toEqual(PRESET_FREQS);
   });
   it('remembers the last station (by frequency) and record source', () => {
     const s = startState({ freq: 90.3, source: 'line' });
@@ -217,6 +223,50 @@ describe('Presets', () => {
     const s = fresh();
     expect(deckReducer(s, { type: 'preset', key: 4 })).toBe(s);
     expect(deckReducer(s, { type: 'preset' })).toBe(s);
+  });
+  it('tune to the stations saved on them', () => {
+    const s = { ...fresh(), presets: [88.3, 91.1, 90.3, 98.9] };
+    expect(run(s, { type: 'preset', key: 1 }).station).toBe(WFMU);
+  });
+});
+
+describe('Holding a preset key', () => {
+  const hold = (key) => ({ type: 'savePreset', key });
+  it('saves the station on the dial there, and says so', () => {
+    const s = run({ ...radioPlaying(), station: WFMU }, hold(1));
+    expect(s.presets).toEqual([88.3, 91.1, 90.3, 98.9]);
+    expect(s.notice).toBe('Saved to preset 2');
+    expect(s).toMatchObject({ station: WFMU, mode: 'radio', playing: true });
+  });
+  it('works with the radio off too, and leaves it off', () => {
+    const s = run({ ...fresh(), station: WFMU }, hold(3));
+    expect(s.presets).toEqual([88.3, 89.3, 90.3, 91.1]);
+    expect(s.playing).toBe(false);
+  });
+  it('then a tap on that key tunes to the saved station', () => {
+    const s = run({ ...fresh(), station: WFMU }, hold(0), { type: 'preset', key: 1 }, { type: 'preset', key: 0 });
+    expect(s.station).toBe(WFMU);
+  });
+  it('on tape is just a press: it tunes to the preset and saves nothing', () => {
+    const s = run(tapeIn({ station: WFMU }), hold(2));
+    expect(s).toMatchObject({ mode: 'radio', station: KEXP, playing: true, notice: '' });
+    expect(s.presets).toEqual(PRESET_FREQS);
+  });
+  it('ignores keys the deck does not have', () => {
+    const s = radioPlaying();
+    expect(deckReducer(s, hold(4))).toBe(s);
+    expect(deckReducer(s, hold(-1))).toBe(s);
+    expect(deckReducer(s, { type: 'savePreset' })).toBe(s);
+  });
+  it('the message goes after a short while, unless something else replaced it', () => {
+    expect(SHORT_NOTICE_MS).toBe(2000);
+    expect(savedText(0)).toBe('Saved to preset 1');
+    const s = run({ ...radioPlaying(), station: WFMU }, hold(1));
+    expect(deckReducer(s, { type: 'calm', text: 'Saved to preset 2' }).notice).toBe('');
+    const other = { ...s, notice: 'No signal.' };
+    expect(deckReducer(other, { type: 'calm', text: 'Saved to preset 2' })).toBe(other);
+    const quiet = radioPlaying();
+    expect(deckReducer(quiet, { type: 'calm', text: '' })).toBe(quiet);
   });
 });
 

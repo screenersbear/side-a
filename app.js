@@ -1,12 +1,12 @@
 // SIDE A: starts the deck, keeps its state, sends each change to the sound engine, and switches between
 // the deck, the tape shelf, Settings and the mix screens (the address after # says which).
-import { startState, deckReducer } from './logic/deck.js';
+import { startState, deckReducer, SHORT_NOTICE_MS, savedText } from './logic/deck.js';
 import { deckView } from './logic/deck-view.js';
 import { soundPlan } from './logic/sound-plan.js';
 import { STATIONS } from './logic/stations.js';
 import { screenFor, hashFor } from './logic/routes.js';
 import { lookFor } from './logic/looks.js';
-import { loadSettings, saveSettings, loadLook, saveLook } from './data/settings.js';
+import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets } from './data/settings.js';
 import { listTapes, newestTape } from './data/tapes.js';
 import { createEngine } from './audio/engine.js';
 import { createDeckPage } from './pages/deck.js';
@@ -16,7 +16,7 @@ import { createMixing } from './pages/mixing.js';
 
 const root = document.getElementById('app');
 const themeColor = document.querySelector('meta[name="theme-color"]');
-let state = startState(loadSettings());
+let state = startState({ ...loadSettings(), presets: loadPresets() });
 let carryOut = () => {};
 
 function dispatch(action) {
@@ -27,6 +27,11 @@ function dispatch(action) {
   // Sound first, in the same tap, so phones let it play.
   carryOut(soundPlan(prev, next, action.type));
   if (next.station !== prev.station || next.source !== prev.source) saveSettings({ freq: STATIONS[next.station].freq, source: next.source });
+  if (next.presets !== prev.presets) savePresets(next.presets);
+  // "Saved to preset 2" shows for a moment, then the status line comes back.
+  if (action.type === 'savePreset' && next.notice === savedText(action.key)) {
+    setTimeout(() => dispatch({ type: 'calm', text: next.notice }), SHORT_NOTICE_MS);
+  }
   deck.update(deckView(next));
   if (action.type === 'saved' && screenFor(location.hash) === 'shelf') refreshShelf();
 }

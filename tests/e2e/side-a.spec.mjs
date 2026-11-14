@@ -128,6 +128,52 @@ test('Next seeks up the dial to a station that does not allow recording, and Rec
   await expect(page.getByRole('button', { name: 'RADIO' })).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('holding a preset key saves the station there, like a car radio, and the phone remembers it', async ({ page }) => {
+  await openDeck(page);
+  await key(page, 'Play').click();
+  for (let i = stationAt(88.3); i < stationAt(91.1); i++) await key(page, 'Next station').click();
+  await expect(page.locator('.big')).toHaveText('91.1');
+  const two = page.getByRole('button', { name: /^Preset 2:/ });
+  // Held down for about a second.
+  await two.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(1200);
+  await page.mouse.up();
+  await expect(status(page)).toHaveText('Saved to preset 2');
+  await expect(two).toHaveAttribute('aria-label', 'Preset 2: 91.1 WFMU');
+  await expect(two).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.big')).toHaveText('91.1');
+  // The message goes after a moment.
+  await expect(status(page)).toHaveText('WFMU, preset 2');
+  // A quick tap still tunes.
+  await page.getByRole('button', { name: /^Preset 1:/ }).click();
+  await expect(page.locator('.big')).toHaveText('88.3');
+  await two.click();
+  await expect(page.locator('.big')).toHaveText('91.1');
+  // Remembered on the phone; the other keys keep their stations.
+  await page.reload();
+  await expect(page.getByRole('button', { name: /^Preset 2:/ })).toHaveAttribute('aria-label', 'Preset 2: 91.1 WFMU');
+  await expect(page.getByRole('button', { name: /^Preset 3:/ })).toHaveAttribute('aria-label', 'Preset 3: 90.3 KEXP');
+});
+
+test('a preset key held with Enter saves too, and a quick Enter tunes', async ({ page }) => {
+  await openDeck(page);
+  const four = page.getByRole('button', { name: /^Preset 4:/ });
+  await four.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.big')).toHaveText('98.9');
+  await key(page, 'Next station').click();
+  const next = STATIONS[stationAt(98.9) + 1];
+  await expect(page.locator('.big')).toHaveText(next.freq.toFixed(1));
+  await four.focus();
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('Enter');
+  await expect(status(page)).toHaveText('Saved to preset 4');
+  await expect(four).toHaveAttribute('aria-label', `Preset 4: ${next.freq.toFixed(1)} ${next.name}`);
+  await expect(page.locator('.big')).toHaveText(next.freq.toFixed(1));
+});
+
 test('a station that blocks taping when Record is pressed shows the same message and keeps playing', async ({ page }) => {
   await openDeck(page, { blocked: STATIONS[stationAt(90.3)].url });
   await page.getByRole('button', { name: /^Preset 3:/ }).click();

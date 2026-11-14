@@ -52,6 +52,11 @@ describe('deckView on the radio', () => {
     expect(deckView(fresh({ station: KUTX })).status).toBe('KUTX, preset 4, off');
     expect(deckView(fresh({ station: WBGO })).presets[0].on).toBe(true);
   });
+  it('shows the presets saved on the phone', () => {
+    const v = deckView(fresh({ station: WFMU, playing: true, presets: [88.3, 91.1, 90.3, 98.9] }));
+    expect(v.presets[1]).toEqual({ n: 2, on: true, label: 'Preset 2: 91.1 WFMU' });
+    expect(v.status).toBe('WFMU, preset 2');
+  });
   it('keys: Play down while playing, Stop down while stopped', () => {
     expect(deckView(fresh({ playing: true }))).toMatchObject({ playOn: true, stopped: false, recording: false, sounding: true });
     expect(deckView(fresh())).toMatchObject({ playOn: false, stopped: true, sounding: false });

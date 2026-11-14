@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadSettings, saveSettings, loadLook, saveLook } from '../../data/settings.js';
+import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets } from '../../data/settings.js';
 
 function memory() {
   const data = {};
@@ -76,6 +76,37 @@ describe('the look', () => {
   });
 });
 
+describe('the presets', () => {
+  it('reads back the four frequencies saved', () => {
+    const store = memory();
+    expect(savePresets([88.3, 91.1, 90.3, 98.9], store)).toBe(true);
+    expect(store.data['side-a.presets']).toBe('[88.3,91.1,90.3,98.9]');
+    expect(loadPresets(store)).toEqual([88.3, 91.1, 90.3, 98.9]);
+  });
+  it('are kept apart from the station and the look', () => {
+    const store = memory();
+    savePresets([91.1, 89.3, 90.3, 98.9], store);
+    saveSettings({ freq: 90.3, source: 'mic' }, store);
+    saveLook('deck', store);
+    expect(loadPresets(store)).toEqual([91.1, 89.3, 90.3, 98.9]);
+    expect(loadSettings(store)).toEqual({ freq: 90.3, source: 'mic' });
+  });
+  it('are none the first time, when what was saved is not a list, without storage, or when it is blocked', () => {
+    expect(loadPresets(memory())).toBeNull();
+    const store = memory();
+    store.setItem('side-a.presets', '{"1":88.3}');
+    expect(loadPresets(store)).toBeNull();
+    store.setItem('side-a.presets', 'not json');
+    expect(loadPresets(store)).toBeNull();
+    expect(loadPresets(null)).toBeNull();
+    expect(loadPresets({ getItem: () => { throw new Error('blocked'); } })).toBeNull();
+  });
+  it('says so when they cannot be saved', () => {
+    expect(savePresets([88.3], { setItem: () => { throw new Error('quota'); } })).toBe(false);
+    expect(savePresets([88.3], null)).toBe(false);
+  });
+});
+
 describe('the browser storage default', () => {
   beforeEach(() => localStorage.clear());
   it('uses localStorage when none is given', () => {
@@ -83,5 +114,7 @@ describe('the browser storage default', () => {
     expect(loadSettings()).toEqual({ freq: 89.3, source: 'mic' });
     expect(saveLook('boombox')).toBe(true);
     expect(loadLook()).toBe('boombox');
+    expect(savePresets([91.1, 89.3, 90.3, 98.9])).toBe(true);
+    expect(loadPresets()).toEqual([91.1, 89.3, 90.3, 98.9]);
   });
 });

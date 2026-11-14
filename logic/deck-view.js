@@ -1,5 +1,5 @@
 // Everything the deck screen shows, worked out from the deck's state: words, numbers and which keys are down.
-import { STATIONS, freqText, dialPercent, presetNumber, PRESET_FREQS, stationAt } from './stations.js';
+import { STATIONS, freqText, dialPercent, presetNumber, stationAt } from './stations.js';
 import { mmss } from './tape-names.js';
 import { songAt, songLine } from './songs.js';
 
@@ -10,7 +10,7 @@ function statusText(s, isTape) {
     return s.playing ? 'Tape, playing' : 'Tape, stopped';
   }
   if (s.tuning) return 'Tuning in';
-  const preset = presetNumber(s.station);
+  const preset = presetNumber(s.station, s.presets);
   const name = STATIONS[s.station].name;
   const where = preset ? `${name}, preset ${preset}` : name;
   return s.playing ? where : `${where}, off`;
@@ -68,7 +68,7 @@ export function deckView(s) {
     dialLabel: `Tuned to ${freqText(station.freq)} FM`,
     rewLabel: isTape ? 'Rewind' : 'Previous station',
     ffLabel: isTape ? 'Fast forward' : 'Next station',
-    presets: PRESET_FREQS.map((f, i) => {
+    presets: s.presets.map((f, i) => {
       const at = stationAt(f);
       return { n: i + 1, on: !isTape && at === s.station, label: `Preset ${i + 1}: ${freqText(f)} ${STATIONS[at].name}` };
     }),

@@ -1,6 +1,7 @@
 // The deck's controls: transport keys, two-way switches (Radio / Tape, Mic / Radio in), preset keys.
 import { el, setPressed } from './el.js';
 import { icon } from './icons.js';
+import { makeHoldable } from './hold.js';
 
 const KEY_ORDER = ['rec', 'play', 'rew', 'ff', 'stop'];
 
@@ -41,12 +42,16 @@ export function createSwitch(groupLabel, options, onPick, cls = 'seg') {
   return { node, update };
 }
 
-// The four preset keys. onPick(index).
-export function createPresets(count, onPick) {
-  const buttons = Array.from({ length: count }, (_, i) =>
-    el('button', { class: 'p', type: 'button', 'aria-pressed': 'false', onclick: () => onPick(i) }, String(i + 1)),
-  );
-  const node = el('div', { class: 'presets' }, buttons);
+// The four preset keys, like a car radio's: onPick(index) on a tap, onHold(index) when held down for a second
+// (to save the station on the dial there).
+export function createPresets(count, { onPick, onHold }) {
+  const hint = el('span', { class: 'visually-hidden', id: 'preset-hint' }, 'Hold to save the station on the dial here.');
+  const buttons = Array.from({ length: count }, (_, i) => {
+    const button = el('button', { class: 'p', type: 'button', 'aria-pressed': 'false', 'aria-describedby': 'preset-hint' }, String(i + 1));
+    makeHoldable(button, { onTap: () => onPick(i), onHold: () => onHold(i) });
+    return button;
+  });
+  const node = el('div', { class: 'presets' }, buttons, hint);
 
   function update(presets) {
     presets.forEach((p, i) => {

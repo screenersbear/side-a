@@ -5,7 +5,7 @@ import { STATION_LIST } from '../data/stations.js';
 // Low to high on the dial, so Next always moves the needle right.
 export const STATIONS = [...STATION_LIST].sort((a, b) => a.freq - b.freq);
 
-// The four number keys: favourite stations, by frequency.
+// The four number keys: favourite stations, by frequency. These until a key is held to save another station there.
 export const PRESET_FREQS = [88.3, 89.3, 90.3, 98.9];
 
 // The FM dial runs from 88 to 108 MHz, with a numbered tick every 4.
@@ -46,16 +46,26 @@ export function stationAt(freq) {
   return STATIONS.findIndex((s) => Math.abs(s.freq - f) < 0.05);
 }
 
-// The station a preset key tunes to (key 0 to 3), or -1.
-export function presetStation(key) {
-  if (!Number.isInteger(key) || key < 0 || key >= PRESET_FREQS.length) return -1;
-  return stationAt(PRESET_FREQS[key]);
+// The four presets from what was saved on the phone: each saved frequency that's on the dial, else that key's
+// default. Always four, each exactly a station's frequency.
+export function cleanPresets(saved) {
+  const list = Array.isArray(saved) ? saved : [];
+  return PRESET_FREQS.map((fallback, i) => {
+    const at = stationAt(list[i]);
+    return at >= 0 ? STATIONS[at].freq : fallback;
+  });
 }
 
-// Which preset key a station is on, 1 to 4, or 0 when it isn't a preset.
-export function presetNumber(index) {
+// The station a preset key tunes to (key 0 to 3), or -1.
+export function presetStation(key, presets = PRESET_FREQS) {
+  if (!Number.isInteger(key) || key < 0 || key >= presets.length) return -1;
+  return stationAt(presets[key]);
+}
+
+// Which preset key a station is on, 1 to 4, or 0 when it isn't a preset (the first key, if it's on two).
+export function presetNumber(index, presets = PRESET_FREQS) {
   if (!isStation(index)) return 0;
-  return PRESET_FREQS.findIndex((f) => stationAt(f) === index) + 1;
+  return presets.findIndex((f) => stationAt(f) === index) + 1;
 }
 
 // Can this station be taped? Some streams don't allow recording.

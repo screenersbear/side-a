@@ -19,7 +19,7 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     line: el('span', { class: 'line', 'aria-live': 'polite' }),
     source: createSwitch('Record from', [{ id: 'mic', text: 'MIC' }, { id: 'line', text: 'RADIO IN' }], (id) => send(id === 'mic' ? 'toMic' : 'toLine')),
     tuner: createTuner(),
-    presets: createPresets(PRESET_FREQS.length, (key) => send('preset', { key })),
+    presets: createPresets(PRESET_FREQS.length, { onPick: (key) => send('preset', { key }), onHold: (key) => send('savePreset', { key }) }),
     mode: createSwitch('Mode', [{ id: 'radio', text: 'RADIO' }, { id: 'tape', text: 'TAPE' }], (id) => send(id === 'radio' ? 'toRadio' : 'toTape')),
     shelfLink: el('a', { class: 'tl', href: '#/shelf' }, shelfText),
     settingsLink: el('a', { class: 'tl', href: '#/settings' }, 'Settings ›'),

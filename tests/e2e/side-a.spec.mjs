@@ -1,5 +1,5 @@
 // SIDE A flows in a real browser: radio, recording a voice note, taping the radio, the shelf, the looks in
-// Settings, the portrait prompt.
+// Settings, making a mixtape, the portrait prompt.
 // The stations are a stand-in tone, the mic is a test signal and every test is muted, so no internet is needed.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
@@ -27,6 +27,23 @@ function fakeSources({ micError }) {
     this.muted = true;
     return play.call(this);
   };
+  // Web Audio too (the mix plays through it): every live context's speakers go through a silent gain.
+  if (window.BaseAudioContext) {
+    const speakers = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'destination');
+    Object.defineProperty(BaseAudioContext.prototype, 'destination', {
+      configurable: true,
+      get() {
+        const real = speakers.get.call(this);
+        if (window.OfflineAudioContext && this instanceof OfflineAudioContext) return real;
+        if (!this.quiet) {
+          this.quiet = this.createGain();
+          this.quiet.gain.value = 0;
+          this.quiet.connect(real);
+        }
+        return this.quiet;
+      },
+    });
+  }
   if (micError) {
     // WebKit on GitHub's Linux machines has no mic or recorder at all, so the app would stop at "This browser
     // can't record." Stand in for both, so the test reaches the mic refusing (what an iPhone does).
@@ -264,6 +281,86 @@ for (const look of ['Deck', 'Sport', 'Boombox']) {
     await expect(page.getByRole('link', { name: /shelf ›/i })).toBeVisible();
   });
 }
+
+// Two tapes on the shelf (quiet tones as WAV files), made in the page with the app's own code.
+async function addTapes(page) {
+  await page.evaluate(async () => {
+    const { saveTape } = await import('/data/tapes.js');
+    const { encodeWav } = await import('/logic/wav.js');
+    const tone = (seconds, hz) => {
+      const sound = Float32Array.from({ length: seconds * 8000 }, (_, i) => 0.2 * Math.sin((i / 8000) * 2 * Math.PI * hz));
+      return new Blob([encodeWav([sound], 8000)], { type: 'audio/wav' });
+    };
+    await saveTape({ kind: 'voice', title: 'Note to self', duration: 6, created: 1, mime: 'audio/wav', blob: tone(6, 330) });
+    await saveTape({ kind: 'radio', title: '90.3 KEXP, Nov 14', duration: 10, created: 2, mime: 'audio/wav', blob: tone(10, 440) });
+  });
+}
+
+test('makes a mixtape: two clips, a cut, a piece removed, a fade in, saved to the shelf', async ({ page }) => {
+  await openDeck(page);
+  await addTapes(page);
+  await page.goto('/#/shelf');
+  await page.getByRole('link', { name: /new mix/i }).click();
+  await expect(page.getByRole('heading', { name: 'New mix' })).toBeVisible();
+  await expect(page.getByText('No clips yet.')).toBeVisible();
+  await expect(page.getByRole('button', { name: /save mixtape/i })).toBeDisabled();
+
+  // The radio tape (the newest, picked first), its end brought in by 2 seconds.
+  await page.getByRole('link', { name: /add clip/i }).click();
+  await expect(page.getByRole('heading', { name: 'Add a clip' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '90.3 KEXP, Nov 14' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.clip-range')).toHaveText('0:00 to 0:10');
+  await page.getByRole('button', { name: 'Move end earlier' }).click();
+  await page.getByRole('button', { name: 'Move end earlier' }).click();
+  await expect(page.locator('.clip-range')).toHaveText('0:00 to 0:08');
+  await page.getByRole('button', { name: /add to mix/i }).click();
+
+  // The whole voice note.
+  await page.getByRole('link', { name: /add clip/i }).click();
+  await page.getByRole('button', { name: 'Note to self' }).click();
+  await expect(page.locator('.clip-range')).toHaveText('0:00 to 0:06');
+  await page.getByRole('button', { name: /add to mix/i }).click();
+
+  const clips = page.locator('.track .clip');
+  await expect(clips).toHaveCount(2);
+  await expect(page.locator('.mix-total')).toHaveText('0:14');
+
+  // Play it (silently) to hear where to cut: the red line follows the sound.
+  const ruler = page.getByRole('slider', { name: 'Red line' });
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+  await expect.poll(async () => Number(await ruler.getAttribute('aria-valuenow')), { timeout: 5000 }).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Stop', exact: true }).click();
+
+  // Cut at 3 seconds, then remove the piece after the cut.
+  await ruler.focus();
+  await page.keyboard.press('Home');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await expect(ruler).toHaveAttribute('aria-valuetext', '0:03');
+  await page.getByRole('button', { name: 'Cut', exact: true }).click();
+  await expect(clips).toHaveCount(3);
+  await expect(clips.nth(1)).toHaveAttribute('aria-label', '90.3 KEXP, Nov 14, 0:05, selected');
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(clips).toHaveCount(2);
+  await expect(page.locator('.mix-total')).toHaveText('0:09');
+
+  // Dragging on the ruler moves the line too.
+  const box = await ruler.boundingBox();
+  await page.mouse.click(box.x + box.width * 0.75, box.y + box.height / 2);
+  await expect.poll(async () => Number(await ruler.getAttribute('aria-valuenow'))).toBeGreaterThan(3);
+
+  // The voice note fades in.
+  await page.getByRole('button', { name: /^Into Note to self: none/ }).click();
+  await expect(page.getByRole('button', { name: /^Into Note to self: fade in/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /save mixtape/i }).click();
+  await expect(page.getByRole('heading', { name: 'Tape shelf' })).toBeVisible();
+  await page.getByRole('button', { name: 'Mixes', exact: true }).click();
+  const tape = page.getByRole('button', { name: /^Play .*: Mixtape, 00:09$/ });
+  await expect(tape).toHaveCount(1);
+  await tape.click();
+  await expect(status(page)).toHaveText(/Tape, (playing|stopped)/);
+});
 
 test.describe('upright phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });

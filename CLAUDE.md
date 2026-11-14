@@ -27,9 +27,14 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   (`components/deck-parts.js`), each look in `pages/looks/` only arranges them and adds its moving part (Pocket level
   bars, Deck meters, Sport EQ, Boombox speaker; all CSS, off with reduce motion). `shelf.js`, `settings.js`.
   Changing the look rebuilds the deck screen; the deck's state and the sound carry on.
+- Mixes (Starky, 2026-11-14: "keep it this simple"): New mix on the shelf -> `#/mix` (`pages/mix.js`, the
+  timeline) and `#/clip` (`pages/clip.js`, a tape and its start/end handles); `pages/mixing.js` holds the mix in
+  progress. Rules in `logic/mix.js` (cut at the red line, remove, None / Fade in 1.5 s), `logic/trim.js`,
+  `logic/mix-layout.js` (pixels <-> seconds). `audio/mixdown.js` decodes tapes, plays the mix (Web Audio) and
+  renders it (OfflineAudioContext) into one WAV (`logic/wav.js`, 44.1 kHz stereo, about 10 MB a minute).
 - `components/`: cassette (true 1004 x 638 geometry; `bandBig` for the Deck look), keys, tuner, the moving parts.
 - `styles/`: `deck-common.css` (what every look shares), one `look-*.css` per look (colours and sizes from the
-  mockup's `Skin*.dc.html` at 844 x 390, scaling with the phone), `shelf.css`, `settings.css`.
+  mockup's `Skin*.dc.html` at 844 x 390, scaling with the phone), `shelf.css`, `settings.css`, `mix.css`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
 - `npm run check-stations` checks every station is streaming and whether it allows taping (needs the station to send
@@ -39,6 +44,8 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
 
 - **Mute while testing the radio** (Starky, 2026-11-14). In the browser pane, run this before pressing anything, after
   every reload: `const p = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { this.muted = true; return p.call(this); }`.
+  The mix plays through Web Audio, so mute that too: route every live context's `destination` through a zero gain
+  (the `fakeSources` stand-in in `tests/e2e/side-a.spec.mjs` has the snippet).
   The browser tests already mute themselves and use a stand-in station and mic (`tests/e2e/side-a.spec.mjs`). They
   block the service worker: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
 - The service worker only registers on https and on 127.0.0.1 (the test server), so a preview on localhost shows edits.

@@ -18,6 +18,12 @@ describe('screenFor', () => {
     expect(screenFor('#/settings')).toBe('settings');
     expect(screenFor('#settings')).toBe('settings');
   });
+  it('opens the mix and adding a clip', () => {
+    expect(screenFor('#/mix')).toBe('mix');
+    expect(screenFor('#/clip')).toBe('clip');
+    expect(hashFor('mix')).toBe('#/mix');
+    expect(hashFor('clip')).toBe('#/clip');
+  });
   it('opens the deck for anything unknown', () => {
     expect(screenFor('#/setting')).toBe('deck');
     expect(screenFor('#/shelves')).toBe('deck');

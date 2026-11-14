@@ -41,3 +41,16 @@
 .tape-title { font-size: 13px; font-weight: 900; font-stretch: 115%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
 .tape-title.plain { text-transform: none; }
 .tape-meta { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* New mix: the shelf's one mango button. */
+.shelf .new-mix {
+  display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; margin-left: 8px; text-decoration: none;
+  background: var(--mango); color: var(--ink); box-shadow: 0 3px 0 #B89600; white-space: nowrap;
+}
+.shelf .new-mix .icon { display: flex; }
+@media (max-width: 740px) {
+  .shelf .screen-title { font-size: 22px; }
+  .shelf-top { gap: 10px; }
+  .shelf .chip { padding: 0 8px; }
+  .shelf .new-mix { margin-left: 0; padding: 0 10px; }
+}

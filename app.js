@@ -1,5 +1,5 @@
 // SIDE A: starts the deck, keeps its state, sends each change to the sound engine, and switches between
-// the deck, the tape shelf and Settings (the address after # says which).
+// the deck, the tape shelf, Settings and the mix screens (the address after # says which).
 import { startState, deckReducer } from './logic/deck.js';
 import { deckView } from './logic/deck-view.js';
 import { soundPlan } from './logic/sound-plan.js';
@@ -12,6 +12,7 @@ import { createEngine } from './audio/engine.js';
 import { createDeckPage } from './pages/deck.js';
 import { createShelfPage } from './pages/shelf.js';
 import { createSettingsPage } from './pages/settings.js';
+import { createMixing } from './pages/mixing.js';
 
 const root = document.getElementById('app');
 const themeColor = document.querySelector('meta[name="theme-color"]');
@@ -53,26 +54,41 @@ const shelf = createShelfPage({
     dispatch({ type: 'blank' });
     location.hash = hashFor('deck');
   },
+  onNewMix: () => mixing.fresh(),
 });
 const settings = createSettingsPage({ onPick: wearLook });
+const mixing = createMixing({
+  onSaved: () => {
+    location.hash = hashFor('shelf');
+  },
+  // The mix plays alone: the deck stops (unless it's taping, which carries on).
+  quiet: () => {
+    if (!state.recording) dispatch({ type: 'stop' });
+  },
+});
 carryOut = createEngine(dispatch);
 
 function refreshShelf() {
   listTapes().then(shelf.show, () => shelf.show([]));
 }
 
-const TITLES = { deck: 'SIDE A', shelf: 'Tape shelf · SIDE A', settings: 'Settings · SIDE A' };
+const TITLES = { deck: 'SIDE A', shelf: 'Tape shelf · SIDE A', settings: 'Settings · SIDE A', mix: 'New mix · SIDE A', clip: 'Add a clip · SIDE A' };
 
 function showScreen() {
   const screen = screenFor(location.hash);
   deck.node.hidden = screen !== 'deck';
   shelf.node.hidden = screen !== 'shelf';
   settings.node.hidden = screen !== 'settings';
+  mixing.mixNode.hidden = screen !== 'mix';
+  mixing.clipNode.hidden = screen !== 'clip';
   document.title = TITLES[screen];
   if (screen === 'shelf') refreshShelf();
+  if (screen === 'mix') mixing.showMix();
+  else mixing.leave();
+  if (screen === 'clip') mixing.showClip();
 }
 
-root.replaceChildren(deck.node, shelf.node, settings.node);
+root.replaceChildren(deck.node, shelf.node, settings.node, ...mixing.nodes);
 deck.update(deckView(state));
 settings.show(deck.look);
 if (themeColor) themeColor.setAttribute('content', lookFor(deck.look).body);

@@ -31,7 +31,7 @@ function blankButton(onBlank) {
   );
 }
 
-export function createShelfPage({ onPick, onBlank }) {
+export function createShelfPage({ onPick, onBlank, onNewMix }) {
   let tapes = [];
   let filter = 'all';
   const grid = el('div', { class: 'shelf-grid' });
@@ -59,6 +59,7 @@ export function createShelfPage({ onPick, onBlank }) {
       el('h1', { class: 'screen-title' }, 'Tape shelf'),
       el('div', { class: 'grow' }),
       chips.node,
+      el('a', { class: 'new-mix control', href: '#/mix', onclick: onNewMix }, icon('plus'), 'New mix'),
     ),
     empty,
     grid,

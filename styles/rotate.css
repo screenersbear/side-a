@@ -15,16 +15,15 @@
 .rotate-brand { margin: 0; font-size: 58px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.04em; line-height: 0.82; position: relative; }
 
 .rotate-stripes {
-  position: absolute; left: -60px; top: 210px; width: 624px; height: 132px;
+  position: absolute; left: -60px; top: 210px; width: 624px; height: 144px;
   transform: rotate(28deg); transform-origin: left top; display: flex; flex-direction: column;
 }
-.rotate-stripes i { display: block; height: 22px; }
-.rotate-stripes i:nth-child(1) { background: var(--red); }
-.rotate-stripes i:nth-child(2) { background: var(--tangerine); }
+/* Three wide stripes. Colourway still open (2026-11-14): cobalt, salmon, mango is the canvas default.
+   The other two on the canvas: teal #14BFA0, crimson #A1062A, paper; orchid #CC2E8A, chartreuse #E2E600, cobalt. */
+.rotate-stripes i { display: block; height: 48px; }
+.rotate-stripes i:nth-child(1) { background: var(--cobalt); }
+.rotate-stripes i:nth-child(2) { background: var(--salmon); }
 .rotate-stripes i:nth-child(3) { background: var(--mango); }
-.rotate-stripes i:nth-child(4) { background: var(--green); }
-.rotate-stripes i:nth-child(5) { background: var(--cyan); }
-.rotate-stripes i:nth-child(6) { background: #7B5CFF; }
 
 .rotate-phone { position: relative; width: 84px; height: 140px; margin-top: auto; display: flex; }
 @keyframes turn { 0%, 20% { transform: rotate(0deg); } 45%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }

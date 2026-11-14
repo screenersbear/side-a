@@ -58,6 +58,9 @@ export async function markClickables(page) {
         const cs = getComputedStyle(el);
         if (r.width === 0 || r.height === 0 || cs.visibility === 'hidden' || cs.display === 'none') continue;
         if (el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
+        // Inside an inert part (a swipe page or panel that isn't showing): nobody can click it until it's shown,
+        // and the click that shows it is tested on its own.
+        if (el.closest('[inert]')) continue;
         if (skip.some((s) => el.closest(s))) continue;
         if (el.tagName === 'A') {
           const href = el.getAttribute('href') || '';

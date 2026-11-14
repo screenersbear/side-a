@@ -62,7 +62,7 @@ describe('Record', () => {
   it('on the radio, tapes the radio', () => {
     const s = run({ ...radioPlaying(), station: KEXP }, { type: 'rec', now: NOW });
     expect(s).toMatchObject({ mode: 'tape', recording: true, playing: true, source: 'line', pos: 0, tuning: false, notice: '' });
-    expect(s.draft).toEqual({ kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio' });
+    expect(s.draft).toEqual({ kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio', freq: 90.3, station: 'KEXP' });
   });
   it('in tape mode, records from the chosen source', () => {
     const mic = run(tapeIn({ pos: 12 }), { type: 'rec', now: NOW });

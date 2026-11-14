@@ -61,6 +61,42 @@ describe('filterTapes', () => {
   });
 });
 
+describe('tapeCard for a radio tape with song titles', () => {
+  const songs = [
+    { at: 0, artist: 'The Paper Lanterns', title: 'Night Swim' },
+    ...[1, 2, 3, 4, 5].map((n) => ({ at: n * 200, artist: `Band ${n}`, title: `Song ${n}` })),
+  ];
+  const tape = { kind: 'radio', title: '101.9 The Long Drive, Nov 14', freq: 101.9, station: 'The Long Drive', duration: 1860, songs };
+  it('puts the station number and first song on the label, the artist and the rest underneath', () => {
+    expect(tapeCard(tape)).toEqual({
+      title: '101.9 · Night Swim', len: '31:00', meta: 'Radio · The Paper Lanterns, +5 more', label: '#1FC8F0',
+      aria: 'Play 101.9, Night Swim by The Paper Lanterns and 5 more songs: Taped from radio, 31:00',
+    });
+  });
+  it('one song: no "more"', () => {
+    const card = tapeCard({ ...tape, songs: songs.slice(0, 1) });
+    expect(card.meta).toBe('Radio · The Paper Lanterns');
+    expect(card.aria).toBe('Play 101.9, Night Swim by The Paper Lanterns: Taped from radio, 31:00');
+  });
+  it('two songs: "1 more song"', () => {
+    expect(tapeCard({ ...tape, songs: songs.slice(0, 2) }).aria).toContain('and 1 more song:');
+  });
+  it('a first song without an artist names the station instead', () => {
+    const card = tapeCard({ ...tape, songs: [{ at: 0, artist: '', title: 'Morning Edition' }] });
+    expect(card.meta).toBe('Radio · The Long Drive');
+    expect(card.aria).toBe('Play 101.9, Morning Edition: Taped from radio, 31:00');
+    expect(tapeCard({ ...tape, station: '', songs: [{ at: 0, artist: '', title: 'X' }] }).meta).toBe('Radio · Radio');
+  });
+  it('without songs, or without a station number, it is an ordinary radio tape', () => {
+    expect(tapeCard({ ...tape, songs: [] }).title).toBe('101.9 The Long Drive, Nov 14');
+    expect(tapeCard({ ...tape, songs: undefined }).meta).toBe('Taped from radio, 31:00');
+    expect(tapeCard({ ...tape, freq: undefined }).title).toBe('101.9 The Long Drive, Nov 14');
+  });
+  it('only radio tapes get song titles', () => {
+    expect(tapeCard({ ...tape, kind: 'voice' }).meta).toBe('Voice note, 31:00');
+  });
+});
+
 describe('tapeCard', () => {
   it('writes the title, kind and length', () => {
     expect(tapeCard(r1)).toEqual({

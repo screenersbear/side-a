@@ -9,7 +9,8 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
 - `logic/`: pure rules, 100% unit tested. `deck.js` is the deck's state and what every button does; `sound-plan.js`
   turns a state change into steps for the speakers and recorder; `deck-view.js` is what the screen shows;
   `stations.js` the dial (Next/Previous seek station to station, no manual tuning) and the four presets;
-  `shelf.js` filters and labels; `recording.js` formats and error words.
+  `shelf.js` filters and labels; `recording.js` formats and error words; `songs.js` and `now-playing.js` the song
+  titles kept on radio tapes.
 - `data/stations.js`: every station on the dial, one real US station per FM frequency (73, from Radio Browser,
   checked 2026-11-14). `tape: false` = the stream doesn't allow recording; Record then says "Recording isn't allowed
   on this station." (WFMU 91.1). A station that blocks it at the moment of recording gets the same message.
@@ -18,7 +19,9 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
 - `audio/`: `radio.js` (audio element on the stream; tapeable stations are asked to share their sound, crossOrigin,
   and fall back to playing plain if they refuse), `tape-player.js`, `recorder.js` (MediaRecorder at 192 kbps: the mic
   with call clean-up off, or the radio as it plays, element -> Web Audio -> MediaStreamDestination, from the moment REC
-  is pressed; Starky 2026-11-14: never a second connection), `engine.js` runs the steps.
+  is pressed; Starky 2026-11-14: never a second connection), `now-playing.js` (while taping, reads the station's
+  song title every 20 s: `titles` in data/stations.js says from where: "icy" = the stream itself, "json" = the
+  Icecast server's status-json.xsl, "kexp" = KEXP's feed; 14 of 73 stations have one), `engine.js` runs the steps.
 - `pages/` deck and shelf; `components/` cassette (true 1004 x 638 geometry), keys, tuner, level bars; `styles/`.
 - `app.js` wires it: dispatch(action) -> new state -> sound steps -> screen update, all in the same tap (iPhones need that).
 - After changing any app file: `npm run stamp` (offline copy list in sw.js). `npm run build` also redraws the icons.
@@ -29,7 +32,8 @@ DESIGN.md before any visual change; also `../Claude Brain/taste.md`). Look: **Po
 
 - **Mute while testing the radio** (Starky, 2026-11-14). In the browser pane, run this before pressing anything, after
   every reload: `const p = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { this.muted = true; return p.call(this); }`.
-  The browser tests already mute themselves and use a stand-in station and mic (`tests/e2e/side-a.spec.mjs`).
+  The browser tests already mute themselves and use a stand-in station and mic (`tests/e2e/side-a.spec.mjs`). They
+  block the service worker: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
 - The service worker only registers on https and on 127.0.0.1 (the test server), so a preview on localhost shows edits.
 
 ## Testing rules (from app-safety-kit)

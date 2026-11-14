@@ -1,6 +1,7 @@
 // Everything the deck screen shows, worked out from the deck's state: words, numbers and which keys are down.
 import { STATIONS, freqText, dialPercent, presetNumber, PRESET_FREQS, stationAt } from './stations.js';
 import { mmss } from './tape-names.js';
+import { songAt, songLine } from './songs.js';
 
 function statusText(s, isTape) {
   if (s.notice) return s.notice;
@@ -18,7 +19,10 @@ function lineText(s, isTape, station) {
   if (!isTape) return station.place ? `${station.name}, ${station.place}` : station.name;
   if (s.recording) return s.source === 'mic' ? 'Mic to side A' : `Taping ${freqText(station.freq)} FM`;
   if (s.draft) return 'Saving the tape';
-  return s.tape ? s.tape.title : 'Blank tape';
+  if (!s.tape) return 'Blank tape';
+  // A radio tape with song titles names the song at the counter.
+  const song = songAt(s.tape.songs, s.pos);
+  return song ? songLine(song) : s.tape.title;
 }
 
 function cassetteTitle(s) {

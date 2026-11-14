@@ -1,8 +1,10 @@
 // SIDE A flows in a real browser: radio, recording a voice note, taping the radio, the shelf, the portrait prompt.
-// The mic is a test signal and every test is muted. In Chromium the stations are a stand-in tone; WebKit's media
-// requests skip Playwright's stand-ins, so there the real streams play (muted).
+// The stations are a stand-in tone, the mic is a test signal and every test is muted, so no internet is needed.
 import { test, expect } from '@playwright/test';
 import { STATIONS, stationAt } from '../../logic/stations.js';
+
+// No service worker here: in WebKit, Playwright's stand-ins can't answer a page a service worker controls.
+test.use({ serviceWorkers: 'block' });
 
 // A few seconds of quiet tone as a WAV file, standing in for a station's stream.
 function toneWav(seconds = 20, rate = 8000) {
@@ -45,7 +47,7 @@ function fakeSources({ micError }) {
 
 // In the page: the station named in blocked plays but won't share its sound, like a real station without CORS.
 // Asked to share (crossOrigin), it fails to load; asked the plain way, it plays. This is staged in the page
-// because Playwright's stand-in answers skip the browser's CORS check, and WebKit's media requests skip them.
+// because Playwright's stand-in answers skip the browser's CORS check.
 function blockStation(blocked) {
   const src = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
   Object.defineProperty(HTMLMediaElement.prototype, 'src', {
@@ -158,6 +160,25 @@ test('tapes the radio and files it under Radio', async ({ page }) => {
   await expect(page.getByText('No voice notes yet.')).toBeVisible();
   await page.getByRole('button', { name: 'Mixes', exact: true }).click();
   await expect(page.getByText('No mixtapes yet.')).toBeVisible();
+});
+
+test('taping a station that names its songs puts the song on the tape', async ({ page }) => {
+  const song = { results: [{ play_type: 'trackplay', artist: 'The Paper Lanterns', song: 'Night Swim' }] };
+  await page.route('https://api.kexp.org/v2/plays/**', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(song),
+  }));
+  await openDeck(page);
+  test.skip(!(await page.evaluate(() => 'MediaRecorder' in window)), 'this browser has no recorder');
+  await page.getByRole('button', { name: /^Preset 3:/ }).click();
+  await key(page, 'Record').click();
+  await expect(line(page)).toHaveText('Taping 90.3 FM');
+  await page.waitForTimeout(1200);
+  await key(page, 'Stop').click();
+  await expect(line(page)).toHaveText('Night Swim, The Paper Lanterns');
+
+  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await expect(page.getByRole('button', { name: /^Play 90\.3, Night Swim by The Paper Lanterns: Taped from radio/ })).toHaveCount(1);
+  await expect(page.getByText('Radio · The Paper Lanterns')).toBeVisible();
 });
 
 test('the blank tape opens the deck ready to record from the mic', async ({ page }) => {

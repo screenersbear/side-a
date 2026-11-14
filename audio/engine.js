@@ -3,7 +3,10 @@
 import { createRadio } from './radio.js';
 import { createTapePlayer } from './tape-player.js';
 import { startMic, startLine, measureSeconds } from './recorder.js';
+import { watchTitles } from './now-playing.js';
 import { recordError, radioError, worthKeeping, tapeSeconds } from '../logic/recording.js';
+import { addSong } from '../logic/songs.js';
+import { STATIONS, stationAt } from '../logic/stations.js';
 import { saveTape } from '../data/tapes.js';
 
 export function createEngine(dispatch) {
@@ -23,7 +26,7 @@ export function createEngine(dispatch) {
   }
 
   function startRecording(step) {
-    const j = { draft: step.draft, startedAt: 0, timer: 0, session: null, stopped: false };
+    const j = { draft: step.draft, startedAt: 0, timer: 0, session: null, stopped: false, songs: [], titles: null };
     job = j;
     const onEnd = () => dispatch({ type: 'stop' });
     const start = step.source === 'line' ? startLine({ radio, onEnd }) : startMic({ onEnd });
@@ -33,6 +36,10 @@ export function createEngine(dispatch) {
         if (j.stopped) return;
         j.startedAt = performance.now();
         j.timer = setInterval(() => dispatch({ type: 'tick', pos: seconds(j) }), 250);
+        // Taping the radio: note each song as the station names it, with the second it started on the tape.
+        if (step.source === 'line') {
+          j.titles = watchTitles(STATIONS[stationAt(j.draft.freq)], (text) => { j.songs = addSong(j.songs, seconds(j), text); });
+        }
       },
       (error) => {
         if (job === j) job = null;
@@ -48,6 +55,7 @@ export function createEngine(dispatch) {
     if (!j) return;
     j.stopped = true;
     clearInterval(j.timer);
+    if (j.titles) j.titles.stop();
     const length = seconds(j);
     await j.ready;
     if (!j.session) return dispatch({ type: 'unsaved', message: '' });
@@ -55,7 +63,8 @@ export function createEngine(dispatch) {
     if (!worthKeeping(blob, length)) return dispatch({ type: 'unsaved', message: 'Nothing was taped.' });
     const real = await measureSeconds(blob);
     try {
-      const saved = await saveTape({ ...j.draft, duration: tapeSeconds(real || length), created: Date.now(), mime: blob.type, blob });
+      const songs = j.draft.kind === 'radio' ? { songs: j.songs } : {};
+      const saved = await saveTape({ ...j.draft, ...songs, duration: tapeSeconds(real || length), created: Date.now(), mime: blob.type, blob });
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
       dispatch({ type: 'saved', tape: saved });
     } catch {

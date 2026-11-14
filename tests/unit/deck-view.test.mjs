@@ -65,6 +65,13 @@ describe('deckView on tape', () => {
       rewLabel: 'Rewind', ffLabel: 'Fast forward',
     });
   });
+  it('a radio tape with song titles names the song at the counter', () => {
+    const songs = [{ at: 0, artist: 'The Paper Lanterns', title: 'Night Swim' }, { at: 60, artist: '', title: 'Station break' }];
+    const radioTape = { ...TAPE, kind: 'radio', songs };
+    expect(deckView(tape({ tape: radioTape, pos: 30 })).line).toBe('Night Swim, The Paper Lanterns');
+    expect(deckView(tape({ tape: radioTape, pos: 61 })).line).toBe('Station break');
+    expect(deckView(tape({ tape: { ...radioTape, songs: [{ at: 5, artist: 'A', title: 'B' }] }, pos: 2 })).line).toBe('Nov 14, 9:41 PM');
+  });
   it('no preset is lit on tape', () => {
     expect(deckView(tape({ station: KEXP })).presets.every((p) => !p.on)).toBe(true);
   });

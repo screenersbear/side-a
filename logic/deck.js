@@ -50,7 +50,10 @@ function record(s, now) {
   const source = s.mode === 'radio' ? 'line' : s.source;
   if (source === 'line' && !canTape(STATIONS[s.station])) return { ...s, notice: NOT_ALLOWED };
   const kind = source === 'mic' ? 'voice' : 'radio';
-  const draft = { kind, title: tapeTitle(kind, STATIONS[s.station], now), from: s.mode };
+  const station = STATIONS[s.station];
+  const draft = { kind, title: tapeTitle(kind, station, now), from: s.mode };
+  // A radio tape remembers its station, for the song titles and the shelf ("101.9 · NIGHT SWIM").
+  if (kind === 'radio') Object.assign(draft, { freq: station.freq, station: station.name });
   return { ...s, mode: 'tape', recording: true, playing: true, tuning: false, source, draft, pos: 0, notice: '' };
 }
 

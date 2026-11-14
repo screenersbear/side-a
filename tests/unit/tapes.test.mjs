@@ -36,6 +36,18 @@ describe('saveTape', () => {
     const [back] = await listTapes();
     expect(Object.keys(back).sort()).toEqual(['blob', 'created', 'duration', 'id', 'kind', 'mime', 'title']);
   });
+  it('a radio tape keeps its station and its songs, and nothing else from them', async () => {
+    const songs = [{ at: 0, artist: 'A', title: 'One', extra: 1 }, { at: 60, artist: '', title: 'Two' }];
+    await saveTape(tape({ kind: 'radio', freq: 90.3, station: 'KEXP', songs }));
+    const [back] = await listTapes();
+    expect(back).toMatchObject({ freq: 90.3, station: 'KEXP', songs: [{ at: 0, artist: 'A', title: 'One' }, { at: 60, artist: '', title: 'Two' }] });
+    expect(back.songs[0]).not.toHaveProperty('extra');
+  });
+  it('a radio tape with no station name or songs saves what it has', async () => {
+    await saveTape(tape({ kind: 'radio', freq: 98.9, songs: [] }));
+    const [back] = await listTapes();
+    expect(back).toMatchObject({ freq: 98.9, station: '', songs: [] });
+  });
   it('stores the sound as bytes and gives it back as a recording of the same format', async () => {
     await saveTape(tape({ blob: sound('hello', 'audio/webm') }));
     const raw = await new Promise((resolve) => {

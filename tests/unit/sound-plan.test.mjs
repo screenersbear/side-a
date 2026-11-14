@@ -37,7 +37,7 @@ describe('soundPlan: radio', () => {
   });
   it('the radio keeps playing, uninterrupted, when Record tapes it', () => {
     const steps = plan({ ...radio(KEXP), tuning: false }, { type: 'rec', now: NOW });
-    expect(steps).toEqual([{ do: 'rec.start', source: 'line', draft: { kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio' } }]);
+    expect(steps).toEqual([{ do: 'rec.start', source: 'line', draft: { kind: 'radio', title: '90.3 KEXP, Nov 14', from: 'radio', freq: 90.3, station: 'KEXP' } }]);
   });
   it('taping the radio from tape mode turns the radio on', () => {
     const steps = plan(tapeIn({ source: 'line', station: KEXP }), { type: 'rec', now: NOW });

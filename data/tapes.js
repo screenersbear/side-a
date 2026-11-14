@@ -48,6 +48,9 @@ export async function saveTape(tape) {
     mime: tape.mime || tape.blob.type || '',
     sound: await tape.blob.arrayBuffer(),
   };
+  // A radio tape also keeps its station and the songs taped (logic/songs.js).
+  if (tape.freq) Object.assign(record, { freq: tape.freq, station: tape.station || '' });
+  if (Array.isArray(tape.songs)) record.songs = tape.songs.map(({ at, artist, title }) => ({ at, artist, title }));
   const id = await done((await store('readwrite')).add(record));
   return toTape({ ...record, id });
 }

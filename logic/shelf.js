@@ -1,5 +1,6 @@
 // The tape shelf: label colour and name for each kind of tape, the filters, and which tapes a filter shows.
 import { mmss } from './tape-names.js';
+import { freqText } from './stations.js';
 
 export const KINDS = {
   voice: { label: '#FFD100', name: 'Voice note' },
@@ -25,10 +26,24 @@ export function filterTapes(tapes, filterId) {
   return [...shown].sort((a, b) => (Number(b.created) || 0) - (Number(a.created) || 0));
 }
 
+// A radio tape with song titles: the station number and the first song on the label ("101.9 · NIGHT SWIM"),
+// the artist and how many more songs underneath ("Radio · The Paper Lanterns, +5 more").
+function songCard(tape, kind, len) {
+  const first = tape.songs[0];
+  const more = tape.songs.length - 1;
+  const freq = freqText(tape.freq);
+  const title = `${freq} · ${first.title}`;
+  const meta = `Radio · ${first.artist || tape.station || 'Radio'}${more ? `, +${more} more` : ''}`;
+  const by = first.artist ? ` by ${first.artist}` : '';
+  const others = more ? ` and ${more} more ${more === 1 ? 'song' : 'songs'}` : '';
+  return { title, len, meta, label: kind.label, aria: `Play ${freq}, ${first.title}${by}${others}: ${kind.name}, ${len}` };
+}
+
 // What the shelf writes on and under one tape. The kind is written out too, so colour is never the only sign.
 export function tapeCard(tape) {
   const kind = KINDS[tape.kind] || KINDS.voice;
   const len = mmss(tape.duration);
+  if (tape.kind === 'radio' && tape.freq && Array.isArray(tape.songs) && tape.songs.length) return songCard(tape, kind, len);
   const title = tape.title || kind.name;
   const meta = `${kind.name}, ${len}`;
   return { title, len, meta, label: kind.label, aria: `Play ${title}: ${meta}` };

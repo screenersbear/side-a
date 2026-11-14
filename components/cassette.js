@@ -42,21 +42,47 @@ function printDefs(ids, colors) {
   return [dots, spread, noise(ids.grain, 0.95, 9)];
 }
 
+// Three tones (HANDOFF "Depth pass"), flat and hard-edged so it still reads as print: a white band along the
+// shell's top and left edge, an ink band along its bottom and right (clipped to the rounded shell), and a thin
+// shadow under and right of the label.
+function shellTones(clipId) {
+  const tones = svgEl('g', { 'clip-path': `url(#${clipId})` });
+  tones.append(
+    svgEl('rect', { width: 1004, height: 10, fill: '#FFFFFF', opacity: 0.5 }),
+    svgEl('rect', { width: 10, height: 638, fill: '#FFFFFF', opacity: 0.5 }),
+    svgEl('rect', { y: 626, width: 1004, height: 12, fill: '#29323A', opacity: 0.3 }),
+    svgEl('rect', { x: 992, width: 12, height: 638, fill: '#29323A', opacity: 0.3 }),
+  );
+  return [tones, svgEl('rect', { x: 57, y: 47, width: 904, height: 400, rx: 16, fill: '#29323A', opacity: 0.22 })];
+}
+
+// The window: a dark band along its top, a faint light band at its bottom.
+function windowTones() {
+  return [
+    svgEl('rect', { x: 200, y: 205, width: 604, height: 16, fill: '#12171B', opacity: 0.55 }),
+    svgEl('rect', { x: 200, y: 383, width: 604, height: 12, fill: '#FFFFFF', opacity: 0.14 }),
+  ];
+}
+
 function body(colors, n, printed, bandBig) {
-  const ids = { clip: `cassette-window-${n}`, dots: `cassette-dots-${n}`, spread: `cassette-spread-${n}`, grain: `cassette-grain-${n}` };
+  const ids = { clip: `cassette-window-${n}`, shell: `cassette-shell-${n}`, dots: `cassette-dots-${n}`, spread: `cassette-spread-${n}`, grain: `cassette-grain-${n}` };
   const svg = svgEl('svg', { class: 'cassette-art', viewBox: '0 0 1004 638', 'aria-hidden': 'true', focusable: 'false' });
   const defs = svgEl('defs', {});
   const clip = svgEl('clipPath', { id: ids.clip });
   clip.append(svgEl('rect', { x: 200, y: 205, width: 604, height: 190, rx: 30 }));
-  defs.append(clip, ...(printed ? printDefs(ids, colors) : []));
+  const shellClip = svgEl('clipPath', { id: ids.shell });
+  shellClip.append(svgEl('rect', { width: 1004, height: 638, rx: 32 }));
+  defs.append(clip, shellClip, ...(printed ? printDefs(ids, colors) : []));
   const packFill = printed ? `url(#${ids.dots})` : colors.pack;
   // The band: a thin stripe low on the label, or (Deck look) a wide one across the middle.
   const band = bandBig ? { y: 180, height: 260 } : { y: 405, height: 26 };
   const packs = svgEl('g', { 'clip-path': `url(#${ids.clip})` });
   packs.append(svgEl('circle', { cx: 289.5, cy: 300, r: 135, fill: packFill }), svgEl('circle', { cx: 714.5, cy: 300, r: 95, fill: packFill }));
+  if (printed) packs.append(...windowTones());
   const shapes = svgEl('g', printed ? { filter: `url(#${ids.spread})` } : {});
   shapes.append(
     svgEl('rect', { width: 1004, height: 638, rx: 32, fill: colors.shell }),
+    ...(printed ? shellTones(ids.shell) : []),
     svgEl('rect', { x: 50, y: 40, width: 904, height: 400, rx: 16, fill: colors.label }),
     ...(printed ? [svgEl('rect', { x: 56, y: band.y + 5, width: 904, height: band.height, fill: '#29323A', opacity: 0.35 })] : []),
     svgEl('rect', { x: 50, y: band.y, width: 904, height: band.height, fill: colors.band }),

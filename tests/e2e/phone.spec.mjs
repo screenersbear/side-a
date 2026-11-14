@@ -29,7 +29,7 @@ test('leaving the app while recording stops it and saves the tape', async ({ pag
   });
   await expect(status(page)).toHaveText('Recording stopped when you left the app. The tape is saved.');
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
-  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await page.getByRole('link', { name: /shelf$/i }).click();
   await expect(page.getByRole('button', { name: /: Voice note, / })).toHaveCount(1);
 });
 
@@ -70,7 +70,7 @@ test('the radio plays on one audio element over one connection, never Web Audio,
     await key(page, 'Stop').click();
     await expect(status(page)).toHaveText('WBGO Jazz, Newark NJ');
   }
-  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await page.getByRole('link', { name: /shelf$/i }).click();
   await expect(page.getByRole('button', { name: /^88\.3 WBGO Jazz.*Taped from radio/ })).toHaveCount(2);
   expect(await radio()).toEqual({ webAudio: 0, elements: 1, playing: 1 });
   expect(connections).toHaveLength(1);

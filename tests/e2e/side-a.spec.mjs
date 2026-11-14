@@ -120,7 +120,7 @@ test('records a voice note, then plays it from the shelf', async ({ page, browse
   expect(checks[0].stored).toBe(checks[0].bytes);
   await expect(status(page)).toHaveText('Tape, stopped');
 
-  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await page.getByRole('link', { name: /shelf$/i }).click();
   await expect(page.getByRole('heading', { name: 'Tape shelf' })).toBeVisible();
   const tape = page.getByRole('button', { name: /: Voice note, / });
   await expect(tape).toHaveCount(1);
@@ -146,7 +146,7 @@ test('a recording that comes out silent says so', async ({ page, browserName }) 
   // It's kept, so it can be looked at (or deleted), and the next press brings the deck back.
   await key(page, 'Play').click();
   await expect(status(page)).not.toHaveText('This recording came out silent.');
-  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await page.getByRole('link', { name: /shelf$/i }).click();
   await expect(page.getByRole('button', { name: /: Voice note, / })).toHaveCount(1);
 });
 
@@ -177,7 +177,7 @@ test('tapes the radio and files it under Radio', async ({ page }) => {
   await page.getByRole('button', { name: 'TAPE' }).click();
   await expect(line(page)).toHaveText(/^88\.3 WBGO Jazz, /);
 
-  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await page.getByRole('link', { name: /shelf$/i }).click();
   await page.getByRole('button', { name: 'Radio', exact: true }).click();
   await expect(page.getByRole('button', { name: /^88\.3 WBGO Jazz.*Taped from radio/ })).toHaveCount(1);
   await page.getByRole('button', { name: 'Voice', exact: true }).click();
@@ -227,7 +227,7 @@ test('taping a station that names its songs puts the song on the tape', async ({
   await expect(status(page)).toHaveText('KEXP, Seattle WA');
   await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
 
-  await page.getByRole('link', { name: 'Shelf ›' }).click();
+  await page.getByRole('link', { name: /shelf$/i }).click();
   await expect(page.getByRole('button', { name: /^90\.3, Night Swim by The Paper Lanterns: Taped from radio/ })).toHaveCount(1);
   await expect(page.getByText('Radio · The Paper Lanterns')).toBeVisible();
 });

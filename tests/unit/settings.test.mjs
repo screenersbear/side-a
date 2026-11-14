@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets } from '../../data/settings.js';
+import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadClicks, saveClicks } from '../../data/settings.js';
 
 function memory() {
   const data = {};
@@ -104,6 +104,25 @@ describe('the presets', () => {
   it('says so when they cannot be saved', () => {
     expect(savePresets([88.3], { setItem: () => { throw new Error('quota'); } })).toBe(false);
     expect(savePresets([88.3], null)).toBe(false);
+  });
+});
+
+describe('key clicks', () => {
+  it('are on until turned off, and remember it', () => {
+    const store = memory();
+    expect(loadClicks(store)).toBe(true);
+    expect(saveClicks(false, store)).toBe(true);
+    expect(store.data['side-a.clicks']).toBe('off');
+    expect(loadClicks(store)).toBe(false);
+    saveClicks(true, store);
+    expect(loadClicks(store)).toBe(true);
+  });
+  it('stay on without storage, or when it is blocked', () => {
+    expect(loadClicks(null)).toBe(true);
+    expect(loadClicks({ getItem: () => { throw new Error('blocked'); } })).toBe(true);
+  });
+  it('says so when the choice cannot be saved', () => {
+    expect(saveClicks(true, { setItem: () => { throw new Error('quota'); } })).toBe(false);
   });
 });
 

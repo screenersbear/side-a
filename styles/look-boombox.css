@@ -32,7 +32,9 @@
 /* The top bar: raised (a light line above, a ledge below), paper type on ink. */
 .look-boombox .bar {
   flex: 0 0 56px; display: flex; align-items: center; gap: 22px; padding: 0 18px;
-  background: var(--ink); color: var(--paper); box-shadow: 0 -3px 0 #FFD3D1, 0 5px 0 #B8605B;
+  /* A dark panel: a light inner line on top, a dark one at the bottom. */
+  background: var(--ink); color: var(--paper);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, .16), inset 0 -5px 0 rgba(0, 0, 0, .35), 0 -3px 0 #FFD3D1, 0 5px 0 #B8605B;
 }
 .look-boombox .brand { flex: 0 0 auto; font-size: 20px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.02em; line-height: 1; white-space: nowrap; }
 .look-boombox .tuner { flex: 1 1 0; width: auto; min-width: 120px; height: 36px; }
@@ -49,7 +51,8 @@
 
 .look-boombox .housing {
   flex: 0 0 auto; align-self: flex-start; display: flex; padding: 10px; border-radius: 10px;
-  background: var(--ink); box-shadow: 0 -3px 0 #FFD3D1, 0 5px 0 #B8605B;
+  background: var(--ink);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, .16), inset 0 -5px 0 rgba(0, 0, 0, .35), 0 -3px 0 #FFD3D1, 0 5px 0 #B8605B;
 }
 /* The rounded door: the body covers the cassette around it; recessed with a hard inner shadow top and left. */
 .look-boombox .door {
@@ -89,9 +92,13 @@
 
 /* Dark keys on a hard 4 px edge; a key that's down is short and cobalt. */
 .look-boombox .transport { display: flex; gap: 4px; align-items: flex-end; height: 44px; }
-.look-boombox .k { width: 52px; height: 44px; background: var(--ink); color: var(--paper); box-shadow: 0 4px 0 #12171B; }
-.look-boombox .k.on { height: 36px; background: var(--cobalt); box-shadow: none; }
-.look-boombox .k:active { height: 40px; box-shadow: 0 1px 0 #12171B; }
+/* Three tones: lit along the top, a darker strip at the foot, the edge below. */
+.look-boombox .k {
+  width: 52px; height: 44px; background: var(--ink); color: var(--paper);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .2), inset 0 -3px 0 rgba(0, 0, 0, .3), 0 4px 0 #12171B;
+}
+.look-boombox .k.on { height: 36px; background: var(--cobalt); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .3), inset 0 -3px 0 rgba(0, 0, 0, .3); }
+.look-boombox .k:active { height: 40px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), 0 1px 0 #12171B; }
 
 .look-boombox .mode-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .look-boombox .seg { padding: 0 8px; font-size: 11px; }

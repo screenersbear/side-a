@@ -14,7 +14,7 @@ test.beforeEach(async ({}, info) => {
 test('Settings changes the look, and the deck keeps it after a reload', async ({ page }) => {
   await openDeck(page);
   await expect(page.locator('.look-pocket')).toBeVisible();
-  await page.getByRole('link', { name: 'Settings ›' }).click();
+  await page.getByRole('link', { name: 'Settings' }).click();
   await expect(card(page, 'Pocket')).toHaveAttribute('aria-pressed', 'true');
   await expect(card(page, 'Pocket')).toContainText('In use');
   await card(page, 'Sport').click();
@@ -59,9 +59,44 @@ for (const look of ['Deck', 'Sport', 'Boombox']) {
     await key(page, 'TAPE').click();
     await expect(key(page, 'MIC')).toBeVisible();
     await expect(key(page, 'RADIO IN')).toBeVisible();
-    await expect(page.getByRole('link', { name: /shelf ›/i })).toBeVisible();
+    // The Shelf and Settings keys, whole on screen.
+    for (const name of [/shelf$/i, 'Settings']) await expect(page.getByRole('link', { name })).toBeInViewport({ ratio: 1 });
   });
 }
+
+test('keys click like a real deck, and Settings can turn the clicks off (remembered)', async ({ page }) => {
+  // Counts the clicks made: each is a burst of noise (a buffer played through Web Audio, silenced in tests).
+  await page.addInitScript(() => {
+    window.clicked = 0;
+    const make = AudioContext.prototype.createBufferSource;
+    AudioContext.prototype.createBufferSource = function counted() {
+      window.clicked += 1;
+      return make.call(this);
+    };
+  });
+  await openDeck(page);
+  const clicked = () => page.evaluate(() => window.clicked);
+  // Play latches: a clunk, then a tick. A preset ticks.
+  await key(page, 'Play').click();
+  await expect.poll(clicked).toBe(2);
+  await page.getByRole('button', { name: /^Preset 2:/ }).click();
+  await expect.poll(clicked).toBe(3);
+  await page.getByRole('link', { name: 'Settings' }).click();
+  const on = page.getByRole('button', { name: 'On', exact: true });
+  const off = page.getByRole('button', { name: 'Off', exact: true });
+  await expect(on).toHaveAttribute('aria-pressed', 'true');
+  await off.click();
+  await expect(off).toHaveAttribute('aria-pressed', 'true');
+  await expect(on).toHaveAttribute('aria-pressed', 'false');
+  const before = await clicked();
+  await page.getByRole('link', { name: 'Deck', exact: true }).click();
+  await key(page, 'Stop').click();
+  await page.waitForTimeout(200);
+  expect(await clicked()).toBe(before);
+  await page.reload();
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(page.getByRole('button', { name: 'Off', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
 
 test('makes a mixtape: two clips, a cut, a piece removed, a fade in, saved to the shelf', async ({ page }) => {
   await openDeck(page);

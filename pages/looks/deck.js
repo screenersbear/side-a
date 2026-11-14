@@ -4,7 +4,7 @@
 import { el } from '../../components/el.js';
 import { createMeters } from '../../components/meters.js';
 
-export const DECK_PARTS = { keys: { order: ['stop', 'rec', 'rew', 'play', 'ff'], cls: 'pk', recIcon: 'recBar' } };
+export const DECK_PARTS = { keys: { order: ['stop', 'rec', 'rew', 'play', 'ff'], cls: 'pk', recIcon: 'recBar' }, shelfText: 'Shelf' };
 
 const KEY_NAMES = { stop: 'Stop', rec: 'Rec', rew: 'Rew', play: 'Play', ff: 'FF' };
 
@@ -35,7 +35,7 @@ export function createDeckLook(p) {
     el('div', { class: 'readout' }, p.status, el('div', { class: 'big-row' }, p.big, p.unit), p.line),
     p.tuner.node,
     p.presets.node,
-    el('div', { class: 'links' }, p.settingsLink, p.shelfLink),
+    el('div', { class: 'links' }, p.shelfLink, p.settingsLink),
   );
 
   const node = el(

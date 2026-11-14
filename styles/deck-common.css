@@ -19,8 +19,8 @@
 /* The rolled screen edge: flat tone bands inside every edge (each look sets its own tones). */
 .deck .edge { position: absolute; inset: 0; z-index: 2; border-radius: 36px; pointer-events: none; }
 
-.deck .k, .deck .pk, .deck .seg, .deck .p, .deck .tl { border: 0; border-radius: 0; padding: 0; margin: 0; cursor: pointer; }
-.deck .k:focus-visible, .deck .pk:focus-visible, .deck .seg:focus-visible, .deck .p:focus-visible, .deck .tl:focus-visible {
+.deck .k, .deck .pk, .deck .seg, .deck .p { border: 0; border-radius: 0; padding: 0; margin: 0; cursor: pointer; }
+.deck .k:focus-visible, .deck .pk:focus-visible, .deck .seg:focus-visible, .deck .p:focus-visible, .deck .tk:focus-visible {
   outline: 3px solid var(--cobalt); outline-offset: 3px;
 }
 .deck .k, .deck .pk {
@@ -28,10 +28,28 @@
   transition: transform .08s, box-shadow .08s, height .08s;
 }
 .deck .icon { display: flex; }
-.deck .tl {
-  background: transparent; color: inherit; font-size: 12px; font-weight: 500; min-height: 44px; min-width: 44px;
-  display: flex; align-items: center; text-decoration: none; white-space: nowrap;
+/* Shelf and Settings: raised keys with an icon and a Control label (HANDOFF "Depth pass"), sitting on a 4 px edge and
+   sinking 3 px when pressed. Each look colours them. The tap area reaches the edge, so it's 44 px tall. */
+.deck .tk {
+  position: relative; flex: none; height: 40px; padding: 0 12px; border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 800; font-stretch: 115%; letter-spacing: .06em; line-height: 1; text-transform: uppercase;
+  text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
 }
+.deck .tk::after { content: ''; position: absolute; inset: 0 0 -4px; }
+.deck .tk:active { transform: translateY(3px); }
+/* Light bodies: a paper key, ink outline, a white line across the top. Dark bodies: an ink key, lit along the top. */
+.look-pocket .tk, .look-deck .tk {
+  background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink), inset 0 5px 0 #FFFFFF, 0 4px 0 var(--ink);
+}
+.look-pocket .tk:active, .look-deck .tk:active { box-shadow: inset 0 0 0 2px var(--ink), 0 1px 0 var(--ink); }
+.look-sport .tk, .look-boombox .tk {
+  background: var(--ink); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .2), inset 0 -3px 0 rgba(0, 0, 0, .3), 0 4px 0 #12171B;
+}
+.look-sport .tk { color: var(--mango); }
+.look-boombox .tk { color: var(--paper); }
+.look-sport .tk:active, .look-boombox .tk:active { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), 0 1px 0 #12171B; }
 
 .deck .readout { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .deck .status, .deck .line { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -69,7 +87,7 @@
   -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation;
 }
 
-.deck .links { display: flex; justify-content: space-between; }
+.deck .links { display: flex; justify-content: space-between; gap: 8px; }
 
 /* The cassette bay: sized by its look (--bay-h), always the cassette's true 1.57:1. */
 .deck .bay {

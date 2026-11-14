@@ -1,5 +1,6 @@
 // Settings: pick the look the deck wears. One card per look (a small cassette on the look's body colour);
 // the one in use is ringed in mango. Picking one changes the deck at once; Deck goes back to it.
+// Key clicks: On / Off (HANDOFF "Depth pass"; on by default).
 import { el, setPressed } from '../components/el.js';
 import { icon } from '../components/icons.js';
 import { createCassette } from '../components/cassette.js';
@@ -19,8 +20,11 @@ function lookCard(look, onPick) {
   return { id: look.id, node, inUse };
 }
 
-export function createSettingsPage({ onPick }) {
+export function createSettingsPage({ onPick, onClicks }) {
   const cards = LOOKS.map((look) => lookCard(look, onPick));
+  const choice = (on, text) => el('button', { class: 'choice control', type: 'button', 'aria-pressed': 'false', onclick: () => onClicks(on) }, text);
+  const clicksOn = choice(true, 'On');
+  const clicksOff = choice(false, 'Off');
 
   const node = el(
     'section',
@@ -37,6 +41,17 @@ export function createSettingsPage({ onPick }) {
       el('h2', { class: 'control settings-label', id: 'look-label' }, 'Look'),
       el('p', { class: 'settings-note' }, 'Pick the player your tapes go in. Everything works the same in each.'),
       el('div', { class: 'looks', role: 'group', 'aria-labelledby': 'look-label' }, cards.map((c) => c.node)),
+      el(
+        'div',
+        { class: 'clicks-row' },
+        el(
+          'div',
+          {},
+          el('h2', { class: 'control settings-label', id: 'clicks-label' }, 'Key clicks'),
+          el('p', { class: 'settings-note' }, 'A short mechanical click when you press a key, like a real deck.'),
+        ),
+        el('div', { class: 'choices', role: 'group', 'aria-labelledby': 'clicks-label' }, clicksOn, clicksOff),
+      ),
     ),
   );
 
@@ -49,5 +64,11 @@ export function createSettingsPage({ onPick }) {
     }
   }
 
-  return { node, show };
+  // Marks whether keys click.
+  function showClicks(on) {
+    setPressed(clicksOn, on);
+    setPressed(clicksOff, !on);
+  }
+
+  return { node, show, showClicks };
 }

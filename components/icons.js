@@ -19,6 +19,9 @@ export const ICONS = {
   straight: SVG(28, 20, '0 0 28 20', '<path d="M14 2 V18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
   // The tape menu's close button.
   close: SVG(16, 16, '0 0 16 16', '<path d="M3 3 L13 13 M13 3 L3 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
+  // The Shelf and Settings keys: a small cassette, and three sliders.
+  shelf: SVG(15, 11, '0 0 15 11', '<rect x="1" y="1" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="5" r="1.4" fill="currentColor"/><circle cx="10" cy="5" r="1.4" fill="currentColor"/>'),
+  sliders: SVG(14, 12, '0 0 14 12', '<path d="M1 2.5 H13 M1 6 H13 M1 9.5 H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="1" width="3" height="3" fill="currentColor"/><rect x="8" y="4.5" width="3" height="3" fill="currentColor"/><rect x="4.5" y="8" width="3" height="3" fill="currentColor"/>'),
   // Boombox: beside the song playing.
   note: SVG(14, 14, '0 0 14 14', '<path d="M5 11 V3 L12 1.5 V9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="11" r="1.8" fill="currentColor"/><circle cx="10.5" cy="9.5" r="1.8" fill="currentColor"/>'),
 };

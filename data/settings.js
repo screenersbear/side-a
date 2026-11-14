@@ -1,8 +1,28 @@
 // Small things the deck remembers between visits: the last station (its frequency) and the record source,
-// and, each kept on its own so saving the station never touches them, the look picked in Settings and the presets.
+// and, each kept on its own so saving the station never touches them, the look picked in Settings, the presets and
+// whether keys click.
 const KEY = 'side-a.settings';
 const LOOK_KEY = 'side-a.look';
 const PRESETS_KEY = 'side-a.presets';
+const CLICKS_KEY = 'side-a.clicks';
+
+// Key clicks, on unless turned off in Settings (or storage is blocked, which can't remember the choice).
+export function loadClicks(storage = globalThis.localStorage) {
+  try {
+    return storage.getItem(CLICKS_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function saveClicks(on, storage = globalThis.localStorage) {
+  try {
+    storage.setItem(CLICKS_KEY, on ? 'on' : 'off');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // The id of the look picked in Settings, or '' when none was picked (or storage is blocked).
 export function loadLook(storage = globalThis.localStorage) {

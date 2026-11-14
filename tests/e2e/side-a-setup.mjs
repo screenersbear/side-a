@@ -125,7 +125,7 @@ export const card = (page, look) => page.getByRole('button', { name: new RegExp(
 export const movingPart = (page) => page.locator('.deck .on.levels, .deck .bay.on, .deck .on.meters, .deck .on.eq-row, .deck .on.speaker');
 
 export async function pickLook(page, look) {
-  await page.getByRole('link', { name: 'Settings ›' }).click();
+  await page.getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await card(page, look).click();
   await expect(card(page, look)).toHaveAttribute('aria-pressed', 'true');

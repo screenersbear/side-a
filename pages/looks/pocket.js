@@ -3,7 +3,7 @@
 import { el } from '../../components/el.js';
 import { createLevelBars } from '../../components/level-bars.js';
 
-export const POCKET_PARTS = { shelfText: 'Shelf ›' };
+export const POCKET_PARTS = { shelfText: 'Shelf' };
 
 export function createPocketLook(p) {
   const bay = el(

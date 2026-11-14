@@ -9,7 +9,7 @@ const KEY_ORDER = ['rec', 'play', 'rew', 'ff', 'stop'];
 // Looks can change the order, the key class and the Record symbol (the Deck look's piano keys).
 export function createTransport(onPress, { order = KEY_ORDER, cls = 'k', recIcon = 'rec' } = {}) {
   const key = (type, label, pressable) =>
-    el('button', { class: cls, type: 'button', 'aria-label': label, 'aria-pressed': pressable ? 'false' : null, onclick: () => onPress(type) }, icon(type === 'rec' ? recIcon : type));
+    el('button', { class: cls, type: 'button', 'aria-label': label, 'aria-pressed': pressable ? 'false' : null, 'data-key': type, onclick: () => onPress(type) }, icon(type === 'rec' ? recIcon : type));
   const keys = {
     rec: key('rec', 'Record', true),
     play: key('play', 'Play', true),

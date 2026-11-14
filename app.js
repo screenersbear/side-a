@@ -6,7 +6,8 @@ import { soundPlan } from './logic/sound-plan.js';
 import { STATIONS } from './logic/stations.js';
 import { screenFor, hashFor } from './logic/routes.js';
 import { lookFor } from './logic/looks.js';
-import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets } from './data/settings.js';
+import { loadSettings, saveSettings, loadLook, saveLook, loadPresets, savePresets, loadClicks, saveClicks } from './data/settings.js';
+import { clickFor } from './logic/key-clicks.js';
 import { listTapes, newestTape, renameTape, deleteTape } from './data/tapes.js';
 import { shareFile } from './data/share.js';
 import { createEngine } from './audio/engine.js';
@@ -14,6 +15,7 @@ import { makeFile } from './audio/export.js';
 import { forgetTape } from './audio/mixdown.js';
 import { createLockScreen } from './audio/lock-screen.js';
 import { createStayAwake } from './audio/stay-awake.js';
+import { createKeyClicks } from './audio/key-clicks.js';
 import { createDeckPage } from './pages/deck.js';
 import { createShelfPage } from './pages/shelf.js';
 import { createSettingsPage } from './pages/settings.js';
@@ -100,7 +102,20 @@ const shelf = createShelfPage({
   },
   onNewMix: () => mixing.fresh(),
 });
-const settings = createSettingsPage({ onPick: wearLook });
+const settings = createSettingsPage({ onPick: wearLook, onClicks: setClicks });
+
+// Keys click like a real deck's (Settings can turn it off): every key on the deck and in Settings.
+const clicks = createKeyClicks();
+let clicksOn = loadClicks();
+function setClicks(on) {
+  clicksOn = on;
+  saveClicks(on);
+  settings.showClicks(on);
+}
+document.addEventListener('click', (e) => {
+  const key = clicksOn && e.target.closest && e.target.closest('.deck button, .deck .tk, .settings button, .settings a');
+  if (key) clicks.play(clickFor(key.dataset.key));
+}, true);
 const mixing = createMixing({
   // The new mixtape is on the shelf, with its menu open to share it.
   onSaved: (tape, warning) => {
@@ -152,6 +167,7 @@ root.replaceChildren(deck.node, shelf.node, settings.node, ...mixing.nodes, menu
 deck.update(deckView(state));
 showLock(state);
 settings.show(deck.look);
+settings.showClicks(clicksOn);
 if (themeColor) themeColor.setAttribute('content', lookFor(deck.look).body);
 showScreen();
 window.addEventListener('hashchange', showScreen);

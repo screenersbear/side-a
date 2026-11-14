@@ -1,6 +1,7 @@
 // The parts every look of the deck has: the cassette, transport keys, readout, tuner, presets, the two switches
-// and the links to the shelf and Settings. A look (pages/looks/) only arranges them; update(view) fills them in.
+// and the Shelf and Settings keys (raised keys with an icon, HANDOFF "Depth pass"). A look (pages/looks/) only arranges them; update(view) fills them in.
 import { el, setText } from './el.js';
+import { icon } from './icons.js';
 import { createCassette } from './cassette.js';
 import { createTransport, createSwitch, createPresets } from './controls.js';
 import { createTuner } from './tuner.js';
@@ -8,7 +9,7 @@ import { createTicker } from './ticker.js';
 import { PRESET_FREQS } from '../logic/stations.js';
 
 // look: an entry of logic/looks.js. keys: options for the transport keys (order, class, Record symbol).
-export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape shelf ›' } = {}) {
+export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape shelf' } = {}) {
   const send = (type, extra) => dispatch({ type, ...extra });
 
   const parts = {
@@ -22,8 +23,8 @@ export function createDeckParts(dispatch, look, { keys = {}, shelfText = 'Tape s
     tuner: createTuner(),
     presets: createPresets(PRESET_FREQS.length, { onPick: (key) => send('preset', { key }), onHold: (key) => send('savePreset', { key }) }),
     mode: createSwitch('Mode', [{ id: 'radio', text: 'RADIO' }, { id: 'tape', text: 'TAPE' }], (id) => send(id === 'radio' ? 'toRadio' : 'toTape')),
-    shelfLink: el('a', { class: 'tl', href: '#/shelf' }, shelfText),
-    settingsLink: el('a', { class: 'tl', href: '#/settings' }, 'Settings ›'),
+    shelfLink: el('a', { class: 'tk', href: '#/shelf' }, icon('shelf'), shelfText),
+    settingsLink: el('a', { class: 'tk', href: '#/settings' }, icon('sliders'), 'Settings'),
     heading: el('h1', { class: 'visually-hidden' }, 'SIDE A'),
     grain: el('div', { class: 'grain', 'aria-hidden': 'true' }),
     edge: el('div', { class: 'edge', 'aria-hidden': 'true' }),

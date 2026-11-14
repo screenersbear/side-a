@@ -1,0 +1,31 @@
+/* The cassette (components/cassette.js). Always 1004 x 638 (a real cassette's 1.57:1). Words scale with its height (cqh). */
+
+.cassette {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1004 / 638;
+  container-type: size;
+  color: var(--label-ink, var(--ink));
+}
+.cassette-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Hubs: centres at (289.5, 300) and (714.5, 300), 96 units across. */
+.reel { position: absolute; top: 39.5%; width: 9.56%; aspect-ratio: 1; display: flex; }
+.reel svg { display: block; }
+.reel-left { left: 24.06%; }
+.reel-right { left: 66.38%; }
+
+/* Reels turn only while a tape plays or records: 2.6 s a turn, steady. */
+@keyframes spin { to { transform: rotate(360deg); } }
+.reel.on { animation: spin 2.6s linear infinite; }
+
+.cassette span { position: absolute; line-height: 1; font-weight: 900; white-space: nowrap; }
+.c-counter { left: 50%; top: 47%; transform: translate(-50%, -50%); font-size: 7.5cqh; font-stretch: 62%; color: var(--mango); }
+.c-title {
+  left: 7%; top: 9%; max-width: 64%; overflow: hidden; text-overflow: ellipsis;
+  font-size: 7cqh; font-stretch: 115%; text-transform: uppercase;
+}
+.c-rec { right: 7%; top: 9%; display: flex; align-items: center; gap: 1.6cqh; font-size: 7cqh; }
+.c-rec .c-rec-dot { position: static; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--red); }
+.c-side { left: 8%; top: 37%; font-size: 13cqh; font-stretch: 125%; }
+.c-len { right: 7.5%; top: 40%; font-size: 7cqh; font-stretch: 62%; }

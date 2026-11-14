@@ -1,0 +1,40 @@
+{
+  "_readme": "One settings file for every safety check. Edit this, not the individual configs.",
+  "logic": [
+    "logic/**/*.js",
+    "data/**/*.js"
+  ],
+  "ignore": [
+    "**/vendor/**",
+    "**/*.min.js",
+    "sw.js",
+    "service-worker.js"
+  ],
+  "serveDir": ".",
+  "port": 4173,
+  "pages": [
+    "/"
+  ],
+  "coverage": 100,
+  "mutationScore": 80,
+  "clickDepth": 2,
+  "maxClicks": 200,
+  "settleMs": 400,
+  "skipClickSelectors": [
+    "[data-test-skip]"
+  ],
+  "ignoreConsoleErrors": [
+    "favicon.ico"
+  ],
+  "budgets": {
+    "loadMs": 2500,
+    "lcpMs": 2500,
+    "cls": 0.1,
+    "longestTaskMs": 200,
+    "heapMB": 60,
+    "slowPhoneLoadMs": 6000,
+    "lighthousePerformance": 0.9,
+    "lighthouseAccessibility": 0.9,
+    "lighthouseBestPractices": 0.9
+  }
+}

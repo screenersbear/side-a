@@ -1,0 +1,145 @@
+import 'fake-indexeddb/auto';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { openShelf, closeShelf, saveTape, listTapes, newestTape } from '../../data/tapes.js';
+
+const sound = (text = 'abc', type = 'audio/mp4') => new Blob([text], { type });
+const tape = (extra = {}) => ({ kind: 'voice', title: 'Nov 14, 9:41 PM', duration: 9, created: 1000, blob: sound(), ...extra });
+
+beforeEach(async () => {
+  closeShelf();
+  await new Promise((resolve) => {
+    const r = indexedDB.deleteDatabase('side-a');
+    r.onsuccess = r.onerror = r.onblocked = () => resolve();
+  });
+});
+
+describe('saveTape', () => {
+  it('saves a tape and gives it a number', async () => {
+    const saved = await saveTape(tape());
+    expect(saved.id).toBe(1);
+    expect(saved).toMatchObject({ kind: 'voice', title: 'Nov 14, 9:41 PM', duration: 9, created: 1000, mime: 'audio/mp4' });
+    expect((await saveTape(tape())).id).toBe(2);
+  });
+  it('keeps the sound itself', async () => {
+    const saved = await saveTape(tape({ blob: sound('hello') }));
+    expect(saved.blob.size).toBe(5);
+    const [back] = await listTapes();
+    expect(back.blob.size).toBe(5);
+  });
+  it('uses the given format first, then the recording\'s own, then none', async () => {
+    expect((await saveTape(tape({ mime: 'audio/mpeg' }))).mime).toBe('audio/mpeg');
+    expect((await saveTape(tape({ blob: sound('x', 'audio/webm') }))).mime).toBe('audio/webm');
+    expect((await saveTape(tape({ blob: sound('x', '') }))).mime).toBe('');
+  });
+  it('saves only the known fields', async () => {
+    await saveTape(tape({ playing: true, extra: 'x' }));
+    const [back] = await listTapes();
+    expect(Object.keys(back).sort()).toEqual(['blob', 'created', 'duration', 'id', 'kind', 'mime', 'title']);
+  });
+  it('stores the sound as bytes and gives it back as a recording of the same format', async () => {
+    await saveTape(tape({ blob: sound('hello', 'audio/webm') }));
+    const raw = await new Promise((resolve) => {
+      const q = indexedDB.open('side-a');
+      q.onsuccess = () => {
+        const get = q.result.transaction('tapes').objectStore('tapes').get(1);
+        get.onsuccess = () => {
+          q.result.close();
+          resolve(get.result);
+        };
+      };
+    });
+    expect(raw.blob).toBeUndefined();
+    expect(raw.sound.byteLength).toBe(5);
+    const [back] = await listTapes();
+    expect(back.blob.type).toBe('audio/webm');
+    expect(await back.blob.text()).toBe('hello');
+  });
+  it('refuses a tape with no recording', async () => {
+    await expect(saveTape(tape({ blob: null }))).rejects.toThrow('A tape needs a recording.');
+    await expect(saveTape(null)).rejects.toThrow('A tape needs a recording.');
+  });
+});
+
+describe('listTapes', () => {
+  it('is empty on a new phone', async () => {
+    expect(await listTapes()).toEqual([]);
+  });
+  it('lists every saved tape', async () => {
+    await saveTape(tape({ title: 'a' }));
+    await saveTape(tape({ title: 'b', kind: 'radio' }));
+    const list = await listTapes();
+    expect(list.map((t) => t.title)).toEqual(['a', 'b']);
+    expect(list[1].kind).toBe('radio');
+  });
+  it('still finds tapes after the shelf is closed and opened again', async () => {
+    await saveTape(tape());
+    closeShelf();
+    expect(await listTapes()).toHaveLength(1);
+  });
+});
+
+describe('newestTape', () => {
+  it('is null on an empty shelf', async () => {
+    expect(await newestTape()).toBe(null);
+  });
+  it('finds the most recently made tape, whatever order they were saved in', async () => {
+    await saveTape(tape({ title: 'old', created: 100 }));
+    await saveTape(tape({ title: 'new', created: 300 }));
+    await saveTape(tape({ title: 'middle', created: 200 }));
+    expect((await newestTape()).title).toBe('new');
+  });
+  it('prefers a dated tape over one with no date', async () => {
+    await saveTape(tape({ title: 'undated', created: undefined }));
+    await saveTape(tape({ title: 'dated', created: 5 }));
+    expect((await newestTape()).title).toBe('dated');
+  });
+  it('keeps the first of two equally new tapes, and copes with no dates at all', async () => {
+    await saveTape(tape({ title: 'first', created: undefined }));
+    await saveTape(tape({ title: 'second', created: undefined }));
+    expect((await newestTape()).title).toBe('first');
+  });
+});
+
+describe('openShelf', () => {
+  it('opens the same shelf every time', async () => {
+    const a = await openShelf();
+    const b = await openShelf();
+    expect(a).toBe(b);
+  });
+  it('fails clearly when the browser has no storage', async () => {
+    await expect(openShelf(null)).rejects.toThrow('This browser has no storage for tapes.');
+  });
+  it('tries again after a failed open', async () => {
+    const broken = {
+      open() {
+        const request = {};
+        setTimeout(() => {
+          request.error = new Error('disk');
+          request.onerror();
+        });
+        return request;
+      },
+    };
+    await expect(openShelf(broken)).rejects.toThrow('disk');
+    await expect(openShelf()).resolves.toBeTruthy();
+  });
+  it('closing while an open is failing does no harm', async () => {
+    const broken = {
+      open() {
+        const request = {};
+        setTimeout(() => {
+          request.error = new Error('disk');
+          request.onerror();
+        });
+        return request;
+      },
+    };
+    const opening = openShelf(broken);
+    closeShelf();
+    await expect(opening).rejects.toThrow('disk');
+  });
+  it('closing when nothing is open does no harm', () => {
+    closeShelf();
+    expect(() => closeShelf()).not.toThrow();
+  });
+});

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIDE A</title>
+<meta name="description" content="A cassette Walkman for your phone: plays the radio, records voice notes and the radio to tape, and keeps them on a tape shelf.">
+<meta name="theme-color" content="#FAFAF7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SIDE A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="images/icon-192.png">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="preload" href="fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/cassette.css">
+<link rel="stylesheet" href="styles/pocket.css">
+<link rel="stylesheet" href="styles/shelf.css">
+<link rel="stylesheet" href="styles/rotate.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<main id="app"></main>
+
+<!-- Shown instead of the app while the phone is upright: the deck only works sideways. -->
+<section class="rotate" aria-label="Turn your phone">
+  <p class="rotate-brand" aria-hidden="true">SIDE A</p>
+  <div class="rotate-stripes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="rotate-phone" aria-hidden="true">
+    <svg width="84" height="140" viewBox="0 0 84 140" focusable="false">
+      <rect x="4" y="4" width="76" height="132" rx="14" fill="none" stroke="#FAFAF7" stroke-width="4"/>
+      <rect x="18" y="52" width="48" height="30" fill="#FFD100"/>
+      <circle cx="32" cy="67" r="7" fill="#29323A"/>
+      <circle cx="52" cy="67" r="7" fill="#29323A"/>
+    </svg>
+  </div>
+  <div class="rotate-words">
+    <h2>Turn it<br>sideways.</h2>
+    <p>The deck is wider than your phone. Rotate to open the radio and tape.</p>
+    <p class="rotate-small">Nothing happening? Turn off rotation lock in Control Center.</p>
+  </div>
+</section>
+<noscript><p class="noscript">SIDE A needs JavaScript turned on.</p></noscript>
+</body>
+</html>

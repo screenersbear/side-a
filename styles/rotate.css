@@ -1,0 +1,37 @@
+/* Landscape only: while the phone is upright, the app is hidden and this "Turn it sideways." screen shows. */
+
+.rotate { display: none; }
+
+@media (orientation: portrait) {
+  #app { display: none; }
+  .rotate {
+    position: fixed; inset: 0; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: space-between;
+    background: var(--ink); color: var(--paper);
+    padding: max(72px, env(safe-area-inset-top, 0px)) 28px max(56px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.rotate-brand { margin: 0; font-size: 58px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.04em; line-height: 0.82; position: relative; }
+
+.rotate-stripes {
+  position: absolute; left: -60px; top: 210px; width: 624px; height: 132px;
+  transform: rotate(28deg); transform-origin: left top; display: flex; flex-direction: column;
+}
+.rotate-stripes i { display: block; height: 22px; }
+.rotate-stripes i:nth-child(1) { background: var(--red); }
+.rotate-stripes i:nth-child(2) { background: var(--tangerine); }
+.rotate-stripes i:nth-child(3) { background: var(--mango); }
+.rotate-stripes i:nth-child(4) { background: var(--green); }
+.rotate-stripes i:nth-child(5) { background: var(--cyan); }
+.rotate-stripes i:nth-child(6) { background: #7B5CFF; }
+
+.rotate-phone { position: relative; width: 84px; height: 140px; margin-top: auto; display: flex; }
+@keyframes turn { 0%, 20% { transform: rotate(0deg); } 45%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+.rotate-phone { animation: turn 3.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rotate-phone { transform: rotate(-90deg); } }
+
+.rotate-words { position: relative; padding-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+.rotate-words h2 { margin: 0; font-size: 40px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; line-height: 0.95; }
+.rotate-words p { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.45; }
+.rotate-words .rotate-small { margin-top: 8px; font-size: 11px; line-height: 1.4; }

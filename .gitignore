@@ -1,0 +1,6 @@
+# app-safety-kit
+node_modules/
+reports/
+.stryker-tmp/
+.lighthouseci/
+test-results/

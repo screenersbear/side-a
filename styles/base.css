@@ -1,0 +1,69 @@
+/* SIDE A: colours, the Archivo font, and page basics. Colour names and uses are in DESIGN.md. */
+
+@font-face {
+  font-family: Archivo;
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url(../fonts/archivo-latin-wdth-normal.woff2) format('woff2-variations'), url(../fonts/archivo-latin-wdth-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: Archivo;
+  font-style: italic;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url(../fonts/archivo-latin-wdth-italic.woff2) format('woff2-variations'), url(../fonts/archivo-latin-wdth-italic.woff2) format('woff2');
+}
+
+:root {
+  --ink: #29323A;
+  --paper: #FAFAF7;
+  --mango: #FFD100;
+  --tangerine: #FF8A3D;
+  --red: #E8322B;
+  --cyan: #1FC8F0;
+  --green: #3DDC4A;
+  --cobalt: #0A4FD6;
+  --shell: #C9D0CC;
+  --tape-grey: #7C868C;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body { overflow: hidden; overscroll-behavior: none; }
+
+button, a { font-family: inherit; color: inherit; }
+button { -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+[hidden] { display: none !important; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.screen { position: fixed; inset: 0; overflow: hidden; }
+
+.noscript { padding: 24px; font-size: 16px; }
+
+/* REC and the "Recording" status blink once a second. */
+@keyframes blink { 50% { opacity: 0; } }
+.blink { animation: blink 1s steps(1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

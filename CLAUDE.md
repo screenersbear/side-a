@@ -83,6 +83,13 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   have three flat tones, the Sport EQ is a printed panel. The tuning wheel (`components/tune-wheel.js`, a slider:
   drag, arrows 0.1, Page Up/Down 1, Home/End): Pocket upright beside the bay, Deck and Sport flat under the tuner,
   Boombox a knob at the end of the bar.
+  Layout rules (HANDOFF "Layout fixes after the bands pass", Starky 2026-11-14): every key, switch half and link keeps
+  at least 8 px from the next, drawn as it is (a key that's on sits 2 to 3 px lower, so those rows get 10 to 11 px),
+  and stays on screen. Shrink the wordmark or the frequency before squeezing keys. Pocket's wordmark row holds
+  RADIO / TAPE; Shelf sits beside Settings at the bottom. Short screens: Pocket's frequency shrinks
+  (`100dvh - 324px`), Sport's spare height goes above its links, Boombox's speaker steps aside and the presets go
+  four across. The "Turn it sideways" phone sits in a square below the stripes (`styles/rotate.css` has the sum):
+  it clears them by 7 px and stays inside the margins all the way round its turn.
   Bands (HANDOFF "Bands"): the BAND key (big FM1/FM2, small WORLD/LOCAL, the mockup's aria labels) is first in
   Pocket's preset row, under Mode in Deck (radio only), beside the big frequency in Sport, in Boombox's Radio/Tape
   row (radio only). The first FM2 press opens `components/local-finder.js` (location or ZIP; Not now stays on FM1);
@@ -129,6 +136,9 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   Radio Browser, the ZIP lookup and https://local.test streams), the BAND key in each look. Keys are found by role:
   links `/shelf$/i` and 'Settings', the wheel `slider` /^Tuning (wheel|knob)$/, the band `/^Band FM[12]/`.
   `iphone-landscape` (WebKit, 750 x 340, Safari with its bars) is the tight size: check new parts fit there too.
+- `layout.spec.mjs`: at 667x375, 844x390 and 932x430, all four looks, RADIO and TAPE, no two controls closer than
+  8 px and none off the screen; upright at 375x667, 390x844 and 430x932, the turning phone never meets the stripes.
+  At 750 x 340 Pocket's rows are 8.8 px apart, 5.8 under a key that's pressed in (not in the test).
 - The service worker only registers on https and on 127.0.0.1 (the test server), so a preview on localhost shows edits.
 
 ## Testing rules (from app-safety-kit)

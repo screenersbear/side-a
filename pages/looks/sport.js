@@ -4,7 +4,8 @@
 import { el } from '../../components/el.js';
 import { createEq } from '../../components/eq.js';
 
-export const SPORT_PARTS = {};
+// 'Shelf', not 'Tape shelf': the long name pushed Settings off a small phone (Starky, 2026-11-14).
+export const SPORT_PARTS = { shelfText: 'Shelf' };
 
 export function createSportLook(p) {
   const eq = createEq();

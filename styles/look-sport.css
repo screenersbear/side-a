@@ -4,14 +4,14 @@
 
 .look-sport {
   --gap: 20px;
-  --col: 236px;
+  --col: 240px;
   --body: #FFD100;
   /* The cassette: what's left under the key row (height) and beside the right column (width). */
   --bay-h: min(calc(100dvh - 98px), calc((100vw - var(--pad-l) - var(--pad-r) - var(--gap) - 24px - var(--col)) / 1.5737), 440px);
   background: var(--body); color: var(--ink);
 }
 @media (max-width: 740px) {
-  .look-sport { --gap: 14px; --col: 220px; }
+  .look-sport { --gap: 14px; --col: 228px; }
 }
 
 /* The rolled edge in tones of the yellow body. */
@@ -28,9 +28,9 @@
 }
 
 /* Top row: keys, then Radio / Tape, then (on Tape) Mic / Radio in. */
-.look-sport .top-row { flex: 0 0 40px; display: flex; align-items: flex-end; gap: 6px; }
-.look-sport .transport { display: flex; gap: 6px; align-items: flex-end; height: 40px; margin-right: 18px; }
-.look-sport .switch + .switch { margin-left: 12px; }
+.look-sport .top-row { flex: 0 0 40px; display: flex; align-items: flex-end; gap: 8px; }
+.look-sport .transport { display: flex; gap: 8px; align-items: flex-end; height: 40px; margin-right: 8px; }
+.look-sport .switch + .switch { margin-left: 8px; }
 /* Dark keys with mango symbols on a hard 4 px edge; a key that's down is short and paper-white. */
 /* Three tones: lit along the top, a darker strip at the foot, the edge below; a key that's down shows paper. */
 .look-sport .k {
@@ -39,7 +39,7 @@
 }
 .look-sport .k.on { height: 32px; background: var(--paper); color: var(--ink); box-shadow: inset 0 3px 0 #FFFFFF, inset 0 -3px 0 #C9D0CC; }
 .look-sport .k:active { height: 36px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), 0 1px 0 #12171B; }
-.look-sport .seg { height: 40px; padding: 0 12px; }
+.look-sport .seg { height: 40px; padding: 0 10px; }
 .look-sport .seg.on { background: var(--ink); color: var(--mango); box-shadow: 0 3px 0 #12171B; }
 
 .look-sport .deck-row { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; gap: var(--gap); }
@@ -106,21 +106,27 @@
   display: flex; flex-direction: column; gap: 8px; padding: 8px 12px;
   background: var(--cyan); box-shadow: 0 4px 0 #128FB0;
 }
-/* A short screen (Safari with its bars): the EQ panel loses its printed scale, so everything stays on screen. */
-@media (max-height: 360px) {
-  .look-sport .eq-marks, .look-sport .eq-freqs { display: none; }
-  .look-sport .eq-graphic { font-size: 16px; }
-  .look-sport .eq-equalizer { font-size: 11px; }
-  .look-sport .big { font-size: 32px; }
-  .look-sport .tune-box { gap: 6px; padding: 6px 10px; }
-  .look-sport .tw-h { height: 22px; }
-}
 .look-sport .tuner { height: 26px; }
 .look-sport .tw-h {
   height: 26px; --w-base: var(--ink); --w-ridge: var(--cyan); --w-hi: rgba(255, 255, 255, .2); --w-shade: rgba(0, 0, 0, .4); --w-edge: #12171B;
 }
 .look-sport .tick-n { font-weight: 800; }
 .look-sport .needle { height: 18px; width: 5px; margin-left: -2.5px; }
-.look-sport .p { width: 48px; height: 44px; box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink); }
+.look-sport .p { width: 44px; height: 44px; box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink); }
 .look-sport .p.on { background: var(--ink); color: var(--cyan); }
 .look-sport .p.on, .look-sport .p:active { transform: translateY(2px); box-shadow: 0 1px 0 #12171B; }
+
+/* A short screen (Safari with its bars): the EQ panel loses its printed scale, so everything stays on screen.
+   Last in the file, so it wins over the sizes above. */
+@media (max-height: 360px) {
+  .look-sport .eq-marks, .look-sport .eq-freqs { display: none; }
+  .look-sport .eq-graphic { font-size: 16px; }
+  .look-sport .eq-equalizer { font-size: 11px; }
+  .look-sport .big { font-size: 28px; }
+  .look-sport .tune-box { gap: 6px; padding: 6px 10px; }
+  .look-sport .tune-box .presets { margin-top: 2px; }
+  .look-sport .tw-h { height: 22px; }
+  /* The spare height goes between the presets and the links, so keys stay 8 px apart. */
+  .look-sport .panel { justify-content: flex-start; }
+  .look-sport .links { margin-top: auto; }
+}

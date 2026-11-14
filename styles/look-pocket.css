@@ -3,13 +3,14 @@
 
 .look-pocket {
   --gap: 24px;
-  --col: 260px;
+  --col: 284px;
   /* The cassette: as big as the phone allows, at its true 1.57:1. */
   --bay-h: min(77dvh, calc((100vw - var(--pad-l) - var(--pad-r) - 2 * var(--gap) - 34px - var(--col)) / 1.5737), 560px);
   background: var(--paper); color: var(--ink);
 }
 @media (max-width: 740px) {
-  .look-pocket { --gap: 14px; --col: 236px; }
+  .look-pocket { --gap: 14px; --col: 268px; }
+  .look-pocket .brand { font-size: 14px; }
 }
 
 /* Printed finish: the red pinstripe printed slightly off register. */
@@ -67,11 +68,12 @@
 /* The controls column. */
 .look-pocket .panel {
   flex: 0 0 var(--col); width: var(--col); min-width: 0;
-  height: calc(var(--bay-h) + 24px); min-height: 312px; max-height: calc(100dvh - 20px);
+  /* Five rows of keys and the readout, at least 8 px apart even when a key is pressed in (it moves 3 px). */
+  height: calc(var(--bay-h) + 24px); min-height: min(360px, calc(100dvh - 20px)); max-height: calc(100dvh - 20px);
   display: flex; flex-direction: column; justify-content: space-between;
 }
 
-.look-pocket .transport { display: flex; gap: 4px; }
+.look-pocket .transport { display: flex; gap: 8px; }
 /* Keys stand on a hard 4 px bottom edge and sink when pressed or down. */
 /* Three tones: a white line across the top of the face, a darker strip at its foot, the edge below. */
 .look-pocket .k {
@@ -81,11 +83,12 @@
 .look-pocket .k.on { background: var(--ink); color: var(--paper); }
 .look-pocket .k.on, .look-pocket .k:active { transform: translateY(3px); box-shadow: inset 0 0 0 2px var(--ink), inset 0 4px 0 #3A454E, 0 1px 0 var(--ink); }
 
-.look-pocket .brand-row { display: flex; align-items: center; justify-content: space-between; }
-.look-pocket .brand { font-size: 18px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; white-space: nowrap; }
+.look-pocket .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.look-pocket .brand { font-size: 16px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; white-space: nowrap; }
 .look-pocket .brand i { color: var(--red); }
 
-.look-pocket .big { font-size: 54px; font-stretch: 62%; line-height: 0.85; }
+/* The frequency shrinks on a short screen (Safari with its bars) before any key is squeezed. */
+.look-pocket .big { font-size: clamp(28px, calc(100dvh - 324px), 54px); font-stretch: 62%; line-height: 0.85; }
 
 .look-pocket .middle { height: 44px; display: flex; align-items: center; }
 .look-pocket .seg.on { background: var(--ink); color: var(--paper); box-shadow: 0 3px 0 var(--tape-grey); }
@@ -98,12 +101,9 @@
 
 /* The BAND key first, then the four presets sharing what's left. */
 .look-pocket .preset-row { display: flex; align-items: flex-start; gap: 8px; }
-.look-pocket .preset-row .presets { flex: 1; min-width: 0; gap: 4px; }
+.look-pocket .preset-row .presets { flex: 1; min-width: 0; gap: 8px; }
 .look-pocket .preset-row .p { flex: 1; width: auto; min-width: 44px; }
 
-.look-pocket .mode-row { display: flex; align-items: center; justify-content: space-between; }
+/* Shelf beside Settings at the bottom right. */
+.look-pocket .links { justify-content: flex-end; }
 
-@media (max-height: 340px) {
-  .look-pocket .big { font-size: 44px; }
-  .look-pocket .panel { min-height: 290px; }
-}

@@ -69,7 +69,8 @@
 .deck .big { font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .deck .unit { font-size: 12px; font-weight: 500; }
 
-.deck .switch { display: flex; gap: 2px; }
+/* Every key keeps at least 8 px from the next (Starky, 2026-11-14), the two halves of a switch too. */
+.deck .switch { display: flex; gap: 8px; }
 .deck .seg {
   height: 44px; padding: 0 10px; background: transparent; color: inherit;
   text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px;

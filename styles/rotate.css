@@ -1,37 +1,72 @@
-/* Landscape only: while the phone is upright, the app is hidden and this "Turn it sideways." screen shows. */
+/* Landscape only: while the phone is upright, the app is hidden and this "Turn it sideways." screen shows.
+   Top to bottom: SIDE A, the stripes, the phone turning, the words. The stripes live in the space between SIDE A
+   and the phone (.rotate-sky), anchored to its foot, so on every phone they end above the phone and never cover it
+   (Starky, 2026-11-14: the phone sat under the stripes and half off the left edge). The phone has a square of room
+   as wide as it is tall, so it stays inside the margins while it turns. Shorter phones get a smaller phone, thinner
+   stripes and smaller words. */
 
 .rotate { display: none; }
 
 @media (orientation: portrait) {
   #app { display: none; }
   .rotate {
+    --side: 28px;
+    --phone: 140px; /* the phone's height, and the side of its square */
+    --stripe: 48px;
     position: fixed; inset: 0; overflow: hidden;
-    display: flex; flex-direction: column; justify-content: space-between;
+    display: flex; flex-direction: column;
     background: var(--ink); color: var(--paper);
-    padding: max(72px, env(safe-area-inset-top, 0px)) 28px max(56px, env(safe-area-inset-bottom, 0px));
+    padding: max(72px, env(safe-area-inset-top, 0px)) var(--side) max(56px, env(safe-area-inset-bottom, 0px));
   }
 }
 
-.rotate-brand { margin: 0; font-size: 58px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.04em; line-height: 0.82; position: relative; }
+.rotate-brand { margin: 0; font-size: 58px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.04em; line-height: 0.82; position: relative; z-index: 1; }
 
+/* The space above the phone, the screen's full width. */
+.rotate-sky { position: relative; flex: 1 1 auto; min-height: 0; margin: 0 calc(-1 * var(--side)); }
+/* Three wide stripes at 28 degrees, starting off the left edge. Their lower edge passes 8 px above the upright
+   phone's top right corner: there (--side + 0.89 x --phone from the screen's left, 60 px more from the stripes'
+   corner) a 28 degree edge has dropped 0.5317 x that. */
 .rotate-stripes {
-  position: absolute; left: -60px; top: 210px; width: 624px; height: 144px;
-  transform: rotate(28deg); transform-origin: left top; display: flex; flex-direction: column;
+  position: absolute; left: -60px; width: 680px; height: calc(3 * var(--stripe));
+  bottom: calc(8px + 0.5317 * (60px + var(--side) + 0.89 * var(--phone)));
+  transform: rotate(28deg); transform-origin: left bottom; display: flex; flex-direction: column;
 }
 /* Three wide stripes in "old Hawks" royal blue, lime, white (1970-72 Atlanta Hawks), the canvas default.
    Colourway still open (2026-11-14). Others on the canvas: old Hawks red #E8322B, gold #FFC72C, white;
    cobalt, salmon #FFAFAB, mango; teal #14BFA0, crimson #A1062A, paper; orchid #CC2E8A, chartreuse #E2E600, cobalt. */
-.rotate-stripes i { display: block; height: 48px; }
+.rotate-stripes i { display: block; flex: 1 1 0; }
 .rotate-stripes i:nth-child(1) { background: var(--cobalt); }
 .rotate-stripes i:nth-child(2) { background: var(--lime); }
 .rotate-stripes i:nth-child(3) { background: var(--paper); }
 
-.rotate-phone { position: relative; width: 84px; height: 140px; margin-top: auto; display: flex; }
+/* The phone in a square of room: upright it's 0.6 as wide as tall; turned, it fills the square's width. Halfway
+   round, its corners reach 0.583 of the square from the middle, so the square sits 0.09 in from the margin and
+   the phone never crosses it. The stripes' bottom (above) is set so they clear the phone in every pose by 7 px. */
+.rotate-phone {
+  flex: none; width: var(--phone); height: var(--phone); margin-left: calc(0.09 * var(--phone));
+  display: flex; align-items: center; justify-content: center;
+}
+.rotate-phone svg { width: calc(var(--phone) * 0.6); height: var(--phone); }
 @keyframes turn { 0%, 20% { transform: rotate(0deg); } 45%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
-.rotate-phone { animation: turn 3.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .rotate-phone { transform: rotate(-90deg); } }
+.rotate-phone svg { animation: turn 3.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rotate-phone svg { animation: none; transform: rotate(-90deg); } }
 
-.rotate-words { position: relative; padding-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+.rotate-words { position: relative; flex: none; padding-top: 28px; display: flex; flex-direction: column; gap: 12px; }
 .rotate-words h2 { margin: 0; font-size: 40px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.03em; line-height: 0.95; }
 .rotate-words p { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.45; }
 .rotate-words .rotate-small { margin-top: 8px; font-size: 11px; line-height: 1.4; }
+
+/* Shorter phones (an iPhone SE is 667 tall): everything a little smaller, so the stripes keep their room. */
+@media (orientation: portrait) and (max-height: 800px) {
+  .rotate { --phone: 100px; --stripe: 36px; padding-top: max(48px, env(safe-area-inset-top, 0px)); padding-bottom: max(40px, env(safe-area-inset-bottom, 0px)); }
+  .rotate-words { padding-top: 16px; gap: 10px; }
+  .rotate-words h2 { font-size: 34px; }
+  .rotate-words p { font-size: 15px; }
+}
+@media (orientation: portrait) and (max-height: 620px) {
+  .rotate { --phone: 84px; --stripe: 26px; padding-top: max(32px, env(safe-area-inset-top, 0px)); }
+  .rotate-brand { font-size: 46px; }
+  .rotate-words h2 { font-size: 30px; }
+  .rotate-words p { font-size: 14px; }
+}

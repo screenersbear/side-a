@@ -21,12 +21,13 @@ export function createPocketLook(p) {
     'div',
     { class: 'panel' },
     p.transport.node,
-    el('div', { class: 'brand-row' }, el('span', { class: 'brand' }, 'SIDE A ', el('i', {}, 'pocket')), p.shelfLink),
+    // The wordmark and Radio / Tape; Shelf sits at the bottom beside Settings (Starky, 2026-11-14).
+    el('div', { class: 'brand-row' }, el('span', { class: 'brand' }, 'SIDE A ', el('i', {}, 'pocket')), p.mode.node),
     el('div', { class: 'readout' }, p.status, el('div', { class: 'big-row' }, p.big, p.unit), p.line),
     el('div', { class: 'middle' }, p.source.node, p.tuner.node),
     // The BAND key is the first key in the preset row.
     el('div', { class: 'preset-row' }, p.band, p.presets.node),
-    el('div', { class: 'mode-row' }, p.mode.node, p.settingsLink),
+    el('div', { class: 'links' }, p.shelfLink, p.settingsLink),
   );
 
   const node = el(

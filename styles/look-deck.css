@@ -6,7 +6,7 @@
   --gap: 20px;
   --body: #E3E8E4;
   /* The cassette: what's left after the keys under it (height) and the two side columns (width). */
-  --bay-h: min(calc(100dvh - 134px), calc((100vw - var(--pad-l) - var(--pad-r) - 84px - 2 * var(--gap) - 16px - 196px) / 1.5737), 420px);
+  --bay-h: min(calc(100dvh - 134px), calc((100vw - var(--pad-l) - var(--pad-r) - 84px - 2 * var(--gap) - 16px - 230px) / 1.5737), 420px);
   background: var(--body); color: var(--ink);
 }
 @media (max-width: 740px) {
@@ -30,7 +30,8 @@
 
 /* Left column: Mode, Rec from (on Tape), the meters at the bottom. */
 .look-deck .side { flex: 0 0 84px; width: 84px; display: flex; flex-direction: column; gap: 8px; }
-.look-deck .side .switch { flex-direction: column; gap: 4px; }
+/* 10 px: the key that's on sits 2 px lower, and still clears the next by 8. */
+.look-deck .side .switch { flex-direction: column; gap: 10px; }
 .look-deck .rec-from { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .look-deck .band-box { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .look-deck .band-box .bk { width: 84px; }
@@ -59,9 +60,9 @@
   box-shadow: inset 0 0 0 2px var(--ink), inset 0 10px 0 rgba(41, 50, 58, .28), inset 6px 0 0 rgba(41, 50, 58, .14),
     0 -3px 0 #FFFFFF, 0 4px 0 #B9C1BC;
 }
-.look-deck .key-names { display: flex; gap: 3px; }
+.look-deck .key-names { display: flex; gap: 8px; }
 .look-deck .key-names .lab { flex: 1 1 0; text-align: center; }
-.look-deck .transport { display: flex; gap: 3px; align-items: flex-end; height: 48px; }
+.look-deck .transport { display: flex; gap: 8px; align-items: flex-end; height: 48px; }
 /* Piano keys stand on a hard 5 px edge; a key that's down is shorter and dark. */
 .look-deck .pk {
   flex: 1 1 0; height: 48px; background: var(--paper); color: var(--ink);

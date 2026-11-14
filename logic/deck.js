@@ -75,6 +75,8 @@ function play(s) {
 
 function stop(s) {
   if (!s.playing && !s.recording && !s.notice) return s;
+  // Taping the radio, like a boombox: Stop saves the tape and the radio plays on (Stop again turns it off).
+  if (s.recording && s.source === 'line') return { ...s, mode: 'radio', recording: false, playing: true, tuning: false, notice: '' };
   return { ...s, playing: false, recording: false, tuning: false, notice: '' };
 }
 

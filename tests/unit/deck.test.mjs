@@ -145,6 +145,23 @@ describe('Stop', () => {
     expect(s).toMatchObject({ playing: false, recording: false });
     expect(s.draft.kind).toBe('voice');
   });
+  it('taping the radio: saves the tape and the radio plays on, like a boombox; Stop again turns it off', () => {
+    const s = run({ ...radioPlaying(), station: KEXP, notice: '' }, { type: 'rec', now: NOW }, 'stop');
+    expect(s).toMatchObject({ mode: 'radio', station: KEXP, playing: true, recording: false, tuning: false, notice: '' });
+    expect(s.draft.kind).toBe('radio');
+    expect(run(s, 'stop')).toMatchObject({ mode: 'radio', playing: false });
+  });
+  it('taping the radio from tape (Radio in) also leaves the radio playing', () => {
+    const s = run(tapeIn({ source: 'line', station: KEXP }), { type: 'rec', now: NOW }, 'stop');
+    expect(s).toMatchObject({ mode: 'radio', station: KEXP, playing: true, recording: false });
+  });
+  it('Record pressed again does the same as Stop when taping the radio', () => {
+    const s = run({ ...radioPlaying(), station: KEXP }, { type: 'rec', now: NOW });
+    expect(deckReducer(s, { type: 'rec', now: NOW + 5000 })).toEqual(deckReducer(s, { type: 'stop' }));
+  });
+  it('Radio in chosen but not recording: Stop just stops', () => {
+    expect(run(tapeIn({ source: 'line', playing: true }), 'stop')).toMatchObject({ mode: 'tape', playing: false });
+  });
   it('clears a notice even when nothing plays', () => {
     expect(run({ ...fresh(), notice: 'No signal.' }, 'stop').notice).toBe('');
   });
@@ -433,8 +450,12 @@ describe('Refused (the station would not let its stream be taped)', () => {
     const s = run(tapeIn({ source: 'line' }), { type: 'rec', now: NOW }, { type: 'refused', message: "Couldn't reach the station." });
     expect(s).toMatchObject({ mode: 'tape', playing: false, recording: false, draft: null, notice: "Couldn't reach the station." });
   });
-  it('stays stopped if Stop was pressed first', () => {
+  it('after Stop the radio plays on (Stop only ended the taping)', () => {
     const s = run(radioPlaying(), { type: 'rec', now: NOW }, 'stop', { type: 'refused', message: 'x' });
+    expect(s).toMatchObject({ mode: 'radio', playing: true, draft: null });
+  });
+  it('stays off if the radio was turned off', () => {
+    const s = run(radioPlaying(), { type: 'rec', now: NOW }, 'stop', 'stop', { type: 'refused', message: 'x' });
     expect(s).toMatchObject({ mode: 'radio', playing: false });
   });
   it('uses the not-allowed message when none is given', () => {

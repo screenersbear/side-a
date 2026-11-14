@@ -216,9 +216,16 @@ test('tapes the radio and files it under Radio', async ({ page }) => {
   await expect(line(page)).toHaveText('Taping 88.3 FM');
   await expect(page.locator('.big')).not.toHaveText('00:00', { timeout: 5000 });
   await page.waitForTimeout(600);
-  // Record again stops it, the same as Stop.
+  // Record again stops it, the same as Stop: the tape is saved and the radio plays on, like a boombox.
   await key(page, 'Record').click();
   await expect(key(page, 'Record')).toHaveAttribute('aria-pressed', 'false');
+  await expect(status(page)).toHaveText('WBGO Jazz, preset 1');
+  await expect(key(page, 'Play')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'RADIO' })).toHaveAttribute('aria-pressed', 'true');
+  // Stop again turns the radio off. The tape waits in the deck.
+  await key(page, 'Stop').click();
+  await expect(status(page)).toHaveText('WBGO Jazz, preset 1, off');
+  await page.getByRole('button', { name: 'TAPE' }).click();
   await expect(line(page)).toHaveText(/^88\.3 WBGO Jazz, /);
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();
@@ -248,6 +255,8 @@ test('taping a station that names its songs puts the song on the tape', async ({
   await expect(line(page)).toHaveText('Taping 90.3 FM');
   await page.waitForTimeout(1200);
   await key(page, 'Stop').click();
+  // The radio plays on, still naming the song.
+  await expect(status(page)).toHaveText('KEXP, preset 3');
   await expect(line(page)).toHaveText('Night Swim · The Paper Lanterns');
 
   await page.getByRole('link', { name: 'Shelf ›' }).click();

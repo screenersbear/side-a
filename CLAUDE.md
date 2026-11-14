@@ -30,6 +30,8 @@ picked in Settings and remembered on the device (Starky, 2026-11-14).
   Changing the look rebuilds the deck screen; the deck's state and the sound carry on.
   On the radio every look shows "<station>, preset N" and, when the station names it, "<song> · <artist>"
   (Boombox: under the speaker, with a note). Record pressed again while recording stops it, the same as Stop.
+  Stopping a radio recording saves the tape and the radio plays on, back in radio mode (Starky, 2026-11-14:
+  like a boombox); Stop again turns it off. Mic recordings stop everything, as before.
   Presets work like a car radio (Starky, 2026-11-14): a tap tunes; holding a key for a second
   (`components/hold.js`: finger, mouse, or Enter/Space held) saves the station on the dial there and shows
   "Saved to preset N" for 2 s. On tape a hold is just a tap.

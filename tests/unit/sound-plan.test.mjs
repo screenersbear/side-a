@@ -97,9 +97,10 @@ describe('soundPlan: recording', () => {
     const rec = deckReducer(tapeIn(), { type: 'rec', now: NOW });
     expect(plan(rec, 'stop')).toEqual([{ do: 'rec.stop' }]);
   });
-  it('Stop while taping the radio ends the recording, then the radio', () => {
+  it('Stop while taping the radio ends the recording; the radio plays on, uninterrupted', () => {
     const rec = deckReducer(radio(), { type: 'rec', now: NOW });
-    expect(plan(rec, 'stop')).toEqual([{ do: 'rec.stop' }, { do: 'radio.stop' }]);
+    expect(plan(rec, 'stop')).toEqual([{ do: 'rec.stop' }]);
+    expect(plan(deckReducer(rec, { type: 'stop' }), 'stop')).toEqual([{ do: 'radio.stop' }]);
   });
   it('Record on a station that does not allow it needs no sound changes', () => {
     expect(plan(radio(stationAt(91.1)), { type: 'rec', now: NOW })).toEqual([]);
